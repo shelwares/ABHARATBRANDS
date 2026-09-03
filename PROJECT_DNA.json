@@ -1,0 +1,15 @@
+{
+  "project_name": "Abhartbrands",
+  "naming_conventions": {
+    "files": "kebab-case",
+    "components": "PascalCase"
+  },
+  "tech_stack": {
+    "framework": "Next.js 14 (App Router)",
+    "language": "TypeScript",
+    "styling": "Tailwind CSS",
+    "database": "Supabase/PostgreSQL",
+    "validation": "Zod"
+  },
+  "core_principle": "Pre-sell before manufacturing. Zero inventory risk. Zero bypass."
+}
