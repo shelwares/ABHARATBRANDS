@@ -20,7 +20,7 @@ export async function login(formData: FormData) {
 
     const validatedData = LoginSchema.safeParse({ email, password });
     if (!validatedData.success) {
-      logger.warn('Login validation failed', { ip, errors: validatedData.error.errors });
+      logger.warn('Login validation failed', { ip, errors: validatedData.error.issues });
       return redirect(`/auth/login?message=Invalid input data`)
     }
 
@@ -60,7 +60,7 @@ export async function signup(formData: FormData) {
     
     const validatedData = SignupSchema.safeParse({ email, password, phone, company_name });
     if (!validatedData.success) {
-      logger.warn('Signup validation failed', { ip, errors: validatedData.error.errors });
+      logger.warn('Signup validation failed', { ip, errors: validatedData.error.issues });
       return redirect(`/auth/signup?message=Invalid input data`)
     }
 
