@@ -68,7 +68,7 @@ export async function joinPool(poolId: string, quantity: number) {
 
     const validatedData = JoinPoolSchema.safeParse({ poolId, quantity });
     if (!validatedData.success) {
-      logger.warn('Join pool validation failed', { userId: user.id, errors: validatedData.error.errors });
+      logger.warn('Join pool validation failed', { userId: user.id, errors: validatedData.error.issues });
       return { error: 'Invalid input data' };
     }
 
