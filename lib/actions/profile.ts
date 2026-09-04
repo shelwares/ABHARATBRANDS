@@ -38,7 +38,7 @@ export async function updateProfile(formData: FormData) {
 
     const validatedData = UpdateProfileSchema.safeParse({ phone, company_name, address });
     if (!validatedData.success) {
-      logger.warn('Update profile validation failed', { userId: user.id, errors: validatedData.error.errors });
+      logger.warn('Update profile validation failed', { userId: user.id, errors: validatedData..error.issues });
       return { error: 'Invalid input data' };
     }
 
