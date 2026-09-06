@@ -53,18 +53,13 @@ export default function NewPoolPage({
 
       <form
         action={async (formData: FormData) => {
-          const poolData = {
-            product_id: formData.get("product_id") as string,
-            target_quantity: parseInt(formData.get("target_quantity") as string),
-            deadline: formData.get("deadline") as string,
-          };
-          const tierData = tiers.map((t) => ({
-            min_qty: t.min_qty,
-            max_qty: t.max_qty,
-            buyer_price: t.buyer_price,
-            logistics_fee: t.logistics_fee,
-          }));
-          await createPool(poolData, tierData);
+          formData.append("tier_count", tiers.length.toString());
+          tiers.forEach((t, i) => {
+            formData.append(`tier_min_${i + 1}`, t.min_qty.toString());
+            formData.append(`tier_price_${i + 1}`, t.buyer_price.toString());
+            formData.append(`tier_logistics_${i + 1}`, t.logistics_fee.toString());
+          });
+          await createPool(formData);
         }}
         className="space-y-6"
       >
