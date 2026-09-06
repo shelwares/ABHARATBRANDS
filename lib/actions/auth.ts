@@ -25,7 +25,7 @@ export async function login(formData: FormData) {
     }
 
     const supabase = await getSupabaseServerClient()
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email: validatedData.data.email,
       password: validatedData.data.password,
     })
@@ -35,9 +35,17 @@ export async function login(formData: FormData) {
       return redirect(`/auth/login?message=${encodeURIComponent(error.message)}`)
     }
 
+    // Fetch profile to determine role
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
+
     logger.info('User logged in', { email: validatedData.data.email, ip });
     revalidatePath('/', 'layout')
-    redirect('/dashboard')
+    
+    if (profile?.role === 'admin') {
+      redirect('/admin')
+    } else {
+      redirect('/dashboard')
+    }
   } catch (error) {
     logger.error('Login action error', error);
     return redirect(`/auth/login?message=An unexpected error occurred`)

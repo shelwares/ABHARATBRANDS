@@ -13,7 +13,12 @@ export default async function LoginPage({
   const { data } = await supabase.auth.getUser();
 
   if (data.user) {
-    redirect("/dashboard");
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
+    if (profile?.role === 'admin') {
+      redirect("/admin");
+    } else {
+      redirect("/dashboard");
+    }
   }
 
   return (
