@@ -1,140 +1,195 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-'use client'
+"use client";
 
-import { createPool } from '@/lib/actions/admin'
-import { getAdminProducts } from '@/lib/actions/admin'
-import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { createPool, getAdminProducts } from "@/lib/actions/admin";
+import Link from "next/link";
+import { useState, useEffect, use } from "react";
 
-export default function NewPoolPage({ searchParams }: { searchParams: { product_id?: string } }) {
-  const [products, setProducts] = useState<any[]>([])
-  const [tierCount, setTierCount] = useState(3)
-  const [error, setError] = useState<string | null>(null)
+export default function NewPoolPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ product_id?: string }>;
+}) {
+  const resolvedSearchParams = use(searchParams);
+  const [products, setProducts] = useState<any[]>([]);
+  const [tiers, setTiers] = useState([{ min_qty: 0, max_qty: 100, buyer_price: 0, logistics_fee: 0 }]);
 
   useEffect(() => {
-    getAdminProducts().then(setProducts)
-  }, [])
+    getAdminProducts().then(setProducts);
+  }, []);
 
-  async function handleSubmit(formData: FormData) {
-    setError(null)
-    formData.set('tier_count', String(tierCount))
-    const result = await createPool(formData)
-    if (result?.error) setError(result.error)
-  }
+  const addTier = () => {
+    const last = tiers[tiers.length - 1];
+    setTiers([
+      ...tiers,
+      {
+        min_qty: last.max_qty + 1,
+        max_qty: last.max_qty + 100,
+        buyer_price: 0,
+        logistics_fee: 0,
+      },
+    ]);
+  };
+
+  const removeTier = (index: number) => {
+    if (tiers.length <= 1) return;
+    const newTiers = tiers.filter((_, i) => i !== index);
+    setTiers(newTiers);
+  };
+
+  const updateTier = (index: number, field: string, value: any) => {
+    const newTiers = [...tiers];
+    newTiers[index] = { ...newTiers[index], [field]: value };
+    setTiers(newTiers);
+  };
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6 max-w-3xl">
       <div className="flex items-center gap-4">
-        <Link href="/admin/pools" className="text-slate-500 hover:text-slate-700 text-sm">← Back</Link>
-      </div>
-      <div>
+        <Link href="/admin/pools" className="text-slate-500 hover:text-slate-700 text-sm">
+          ← Back to Pools
+        </Link>
         <h1 className="text-2xl font-bold text-slate-900">Launch New Pool</h1>
-        <p className="text-slate-500 text-sm mt-1">Create a buying pool with pricing tiers.</p>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-        {error && (
-          <div className="mb-6 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200">{error}</div>
-        )}
-        <form action={handleSubmit} className="space-y-6">
-          {/* Product */}
+      <form
+        action={async (formData: FormData) => {
+          const poolData = {
+            product_id: formData.get("product_id") as string,
+            target_quantity: parseInt(formData.get("target_quantity") as string),
+            deadline: formData.get("deadline") as string,
+          };
+          const tierData = tiers.map((t) => ({
+            min_qty: t.min_qty,
+            max_qty: t.max_qty,
+            buyer_price: t.buyer_price,
+            logistics_fee: t.logistics_fee,
+          }));
+          await createPool(poolData, tierData);
+        }}
+        className="space-y-6"
+      >
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+          <h2 className="text-base font-bold text-slate-900">Pool Details</h2>
+
           <div>
-            <label className="block text-sm font-semibold text-slate-900 mb-1.5">Product *</label>
+            <label className="block text-sm font-medium text-slate-700">Product</label>
             <select
               name="product_id"
+              defaultValue={resolvedSearchParams.product_id || ""}
+              className="w-full border border-slate-300 rounded-lg px-4 py-2"
               required
-              defaultValue={searchParams.product_id || ''}
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white"
             >
-              <option value="">Select a product...</option>
-              {products.map((p: any) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+              <option value="">Select a product</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
               ))}
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-1.5">Target Quantity *</label>
-              <input
-                name="target_quantity"
-                required
-                type="number"
-                min="1"
-                placeholder="e.g. 1000"
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-1.5">Deadline *</label>
-              <input
-                name="deadline"
-                required
-                type="datetime-local"
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-              />
-            </div>
-          </div>
-
-          {/* Pricing Tiers */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-semibold text-slate-900">Pricing Tiers</label>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setTierCount(Math.max(1, tierCount - 1))} className="w-7 h-7 flex items-center justify-center bg-slate-100 rounded-lg text-slate-600 hover:bg-slate-200 text-sm font-bold">−</button>
-                <button type="button" onClick={() => setTierCount(Math.min(5, tierCount + 1))} className="w-7 h-7 flex items-center justify-center bg-slate-100 rounded-lg text-slate-600 hover:bg-slate-200 text-sm font-bold">+</button>
-              </div>
-            </div>
-            <div className="space-y-3">
-              {Array.from({ length: tierCount }, (_, i) => i + 1).map((n) => (
-                <div key={n} className="grid grid-cols-3 gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                  <div>
-                    <label className="text-xs font-medium text-slate-600 mb-1 block">Min Qty (Tier {n})</label>
-                    <input
-                      name={`tier_min_${n}`}
-                      type="number"
-                      min="1"
-                      placeholder="e.g. 100"
-                      defaultValue={n === 1 ? 1 : undefined}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none text-sm focus:ring-2 focus:ring-indigo-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-slate-600 mb-1 block">Price / pc (₹)</label>
-                    <input
-                      name={`tier_price_${n}`}
-                      type="number"
-                      step="0.01"
-                      placeholder="e.g. 299"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none text-sm focus:ring-2 focus:ring-indigo-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-slate-600 mb-1 block">Logistics (₹)</label>
-                    <input
-                      name={`tier_logistics_${n}`}
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      defaultValue="0"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none text-sm focus:ring-2 focus:ring-indigo-400"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <label className="block text-sm font-medium text-slate-700">Target Quantity</label>
+            <input
+              name="target_quantity"
+              type="number"
+              min="1"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2"
+              required
+            />
           </div>
 
-          <div className="pt-2 flex gap-3">
-            <button type="submit" className="px-6 py-2.5 bg-amber-500 text-white font-semibold text-sm rounded-lg hover:bg-amber-600 transition-colors">
-              Launch Pool
-            </button>
-            <Link href="/admin/pools" className="px-6 py-2.5 bg-slate-100 text-slate-700 font-semibold text-sm rounded-lg hover:bg-slate-200 transition-colors">
-              Cancel
-            </Link>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Deadline</label>
+            <input
+              name="deadline"
+              type="datetime-local"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2"
+              required
+            />
           </div>
-        </form>
-      </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-slate-900">Pricing Tiers</h2>
+            <button
+              type="button"
+              onClick={addTier}
+              className="text-sm bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700"
+            >
+              + Add Tier
+            </button>
+          </div>
+
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 text-xs text-slate-500 uppercase font-medium">
+                <th className="px-4 py-2 text-left">Min</th>
+                <th className="px-4 py-2 text-left">Max</th>
+                <th className="px-4 py-2 text-left">Price (₹)</th>
+                <th className="px-4 py-2 text-left">Logistics (₹)</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {tiers.map((t, i) => (
+                <tr key={i}>
+                  <td className="px-4 py-2">
+                    <input
+                      type="number"
+                      value={t.min_qty}
+                      onChange={(e) => updateTier(i, "min_qty", parseInt(e.target.value))}
+                      className="w-16 border rounded px-2 py-1"
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <input
+                      type="number"
+                      value={t.max_qty}
+                      onChange={(e) => updateTier(i, "max_qty", parseInt(e.target.value))}
+                      className="w-16 border rounded px-2 py-1"
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <input
+                      type="number"
+                      value={t.buyer_price}
+                      onChange={(e) => updateTier(i, "buyer_price", parseFloat(e.target.value))}
+                      className="w-20 border rounded px-2 py-1"
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <input
+                      type="number"
+                      value={t.logistics_fee}
+                      onChange={(e) => updateTier(i, "logistics_fee", parseFloat(e.target.value))}
+                      className="w-20 border rounded px-2 py-1"
+                    />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      onClick={() => removeTier(i)}
+                      className="text-red-500 text-xs hover:text-red-700"
+                      disabled={tiers.length <= 1}
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <button
+          type="submit"
+          className="w-full bg-amber-500 hover:bg-amber-600 text-indigo-950 font-bold px-6 py-3 rounded-lg text-lg transition"
+        >
+          Launch Pool 🚀
+        </button>
+      </form>
     </div>
-  )
+  );
 }

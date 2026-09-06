@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { getAdminPool, updatePoolStatus } from "@/lib/actions/admin";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -23,14 +22,14 @@ export default async function AdminPoolDetailPage({
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center gap-4">
         <Link href="/admin/pools" className="text-slate-500 hover:text-slate-700 text-sm">
-          Back to Pools
+          ← Back to Pools
         </Link>
       </div>
 
       <div>
         <h1 className="text-2xl font-bold text-slate-900">{pool.products?.name}</h1>
         <p className="text-slate-500 text-sm mt-1">
-          {pool.products?.category || "-"} - Pool ID: {pool.id.slice(0, 8)}...
+          {pool.products?.category || "—"} • Pool ID: {pool.id.slice(0, 8)}...
         </p>
       </div>
 
@@ -60,7 +59,7 @@ export default async function AdminPoolDetailPage({
             <span>{pool.current_quantity} / {pool.target_quantity} ({pct}%)</span>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-2">
-            <div className="bg-indigo-500 h-2 rounded-full" style={{ width: pct + "%" }} />
+            <div className="bg-indigo-500 h-2 rounded-full" style={{ width: `${pct}%` }} />
           </div>
         </div>
       </div>
@@ -73,16 +72,16 @@ export default async function AdminPoolDetailPage({
           <thead>
             <tr className="bg-slate-50 text-xs text-slate-500 uppercase font-medium">
               <th className="px-6 py-3 text-left">Min Qty</th>
-              <th className="px-6 py-3 text-left">Price / pc (Rs.)</th>
-              <th className="px-6 py-3 text-left">Logistics (Rs.)</th>
+              <th className="px-6 py-3 text-left">Price / pc (₹)</th>
+              <th className="px-6 py-3 text-left">Logistics (₹)</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {(pool.pool_tiers || []).map((tier: any) => (
               <tr key={tier.id}>
                 <td className="px-6 py-3 font-semibold text-slate-900">{tier.min_qty}+</td>
-                <td className="px-6 py-3 text-slate-700">Rs.{tier.buyer_price}</td>
-                <td className="px-6 py-3 text-slate-700">Rs.{tier.logistics_fee || 0}</td>
+                <td className="px-6 py-3 text-slate-700">₹{tier.buyer_price}</td>
+                <td className="px-6 py-3 text-slate-700">₹{tier.logistics_fee || 0}</td>
               </tr>
             ))}
           </tbody>
@@ -92,7 +91,7 @@ export default async function AdminPoolDetailPage({
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
         <h2 className="text-base font-bold text-slate-900 mb-4">Update Pool Status</h2>
         <form
-          action={async (formData) => {
+          action={async (formData: FormData) => {
             "use server";
             const status = formData.get("status") as string;
             await updatePoolStatus(pool.id, status);
