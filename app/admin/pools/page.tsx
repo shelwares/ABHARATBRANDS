@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { deletePool, getAdminPools } from "@/lib/actions/admin";
@@ -25,11 +25,19 @@ export default function AdminPoolsPage() {
   async function handleDelete(poolId: string, productName: string) {
     if (!confirm(`Are you sure you want to delete the pool for "${productName}"? This cannot be undone.`)) return;
     setDeletingId(poolId);
-    await deletePool(poolId);
-    setDeletingId(null);
-    // Refresh list
-    getAdminPools().then(setPools);
-    router.refresh();
+    try {
+      const res = await deletePool(poolId);
+      if (res?.error) {
+        alert(`Error: ${res.error}`);
+      }
+    } catch (e) {
+      alert("An unexpected error occurred");
+    } finally {
+      setDeletingId(null);
+      // Refresh list
+      getAdminPools().then(setPools);
+      router.refresh();
+    }
   }
 
   return (

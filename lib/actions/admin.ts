@@ -196,22 +196,19 @@ export async function createPool(formData: FormData) {
 
 export async function deletePool(poolId: string) {
   try {
-    await requireAdmin()
-    const supabase = await getSupabaseServerClient()
+    await requireAdmin();
+    const supabase = await getSupabaseServerClient();
     const { error } = await supabase
       .from('pools')
       .delete()
-      .eq('id', poolId)
-    if (error) {
-      logger.error('Error deleting pool', error);
-      return { error: 'Failed to delete pool' }
-    }
-    revalidatePath('/admin/pools')
-    return { success: true }
+      .eq('id', poolId);
+    if (error) throw error;
+    revalidatePath('/admin/pools');
+    return { success: true };
   } catch (error) {
     if ((error as Error).message === 'NEXT_REDIRECT') throw error;
-    logger.error('Error in deletePool', error);
-    return { error: 'An unexpected error occurred' };
+    logger.error('Delete pool error', { poolId, error });
+    return { error: 'Failed to delete pool' };
   }
 }
 
