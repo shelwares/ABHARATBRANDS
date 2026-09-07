@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getSupabaseServerClient } from '../supabase/server'
 import { logger } from '../logger'
+import { CreateProductSchema, CreatePoolSchema, UpdateOrderStatusSchema } from '../validations'
 
 // ─── Admin Guard ───────────────────────────────────────────────────────────────
 export async function requireAdmin() {
@@ -71,14 +72,23 @@ export async function getAdminProducts() {
 export async function createProduct(formData: FormData) {
   try {
     await requireAdmin()
-    const supabase = await getSupabaseServerClient()
-
-    const { error } = await supabase.from('products').insert({
+    
+    const data = {
       name: formData.get('name') as string,
       description: formData.get('description') as string,
       category: formData.get('category') as string,
-      base_image: formData.get('base_image') as string || null,
-    })
+      base_image: formData.get('base_image') as string || undefined,
+    }
+    
+    const validatedData = CreateProductSchema.safeParse(data);
+    if (!validatedData.success) {
+      logger.warn('Create product validation failed', { errors: validatedData.error.issues });
+      return { error: 'Invalid input data' };
+    }
+
+    const supabase = await getSupabaseServerClient()
+
+    const { error } = await supabase.from('products').insert(validatedData.data)
 
     if (error) {
       logger.error('Error creating product', error);
@@ -129,14 +139,27 @@ export async function getAdminPool(poolId: string) {
 export async function createPool(formData: FormData) {
   try {
     await requireAdmin()
+    
+    const data = {
+      product_id: formData.get('product_id') as string,
+      target_quantity: parseInt(formData.get('target_quantity') as string),
+      deadline: formData.get('deadline') as string,
+    };
+    
+    const validatedData = CreatePoolSchema.safeParse(data);
+    if (!validatedData.success) {
+      logger.warn('Create pool validation failed', { errors: validatedData.error.issues });
+      return { error: 'Invalid input data' };
+    }
+
     const supabase = await getSupabaseServerClient()
 
     const { data: pool, error: poolError } = await supabase
       .from('pools')
       .insert({
-        product_id: formData.get('product_id') as string,
-        target_quantity: parseInt(formData.get('target_quantity') as string),
-        deadline: formData.get('deadline') as string,
+        product_id: validatedData.data.product_id,
+        target_quantity: validatedData.data.target_quantity,
+        deadline: validatedData.data.deadline,
         status: 'active',
       })
       .select('id')
@@ -236,10 +259,17 @@ export async function getAdminOrders() {
 export async function updateOrderStatus(orderId: string, status: string) {
   try {
     await requireAdmin()
+    
+    const validatedData = UpdateOrderStatusSchema.safeParse({ status });
+    if (!validatedData.success) {
+      logger.warn('Update order status validation failed', { errors: validatedData.error.issues });
+      return { error: 'Invalid status' };
+    }
+
     const supabase = await getSupabaseServerClient()
     const { error } = await supabase
       .from('pool_orders')
-      .update({ status })
+      .update({ status: validatedData.data.status })
       .eq('id', orderId)
     if (error) {
       logger.error('Error updating order status', error);

@@ -111,12 +111,26 @@ export async function signup(formData: FormData) {
 
 export async function resetPassword(formData: FormData) {
   try {
+    const ip = (await headers()).get('x-forwarded-for') || '127.0.0.1';
+    if (!checkRateLimit(ip, 'resetPassword', 3, 15 * 60 * 1000)) {
+      return { error: 'Too many requests. Try again later.' }
+    }
+
     const email = formData.get('email') as string
+    
+    const validatedData = z.object({ email: z.string().email() }).safeParse({ email });
+    if (!validatedData.success) {
+      logger.warn('Reset password validation failed', { ip, errors: validatedData.error.issues });
+      return { error: 'Invalid email' };
+    }
+
     const supabase = await getSupabaseServerClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    const { error } = await supabase.auth.resetPasswordForEmail(validatedData.data.email)
     if (error) {
+      logger.warn('Failed reset password attempt', { email: validatedData.data.email, ip });
       return { error: error.message }
     }
+    logger.info('Password reset requested', { email: validatedData.data.email, ip });
     return { success: true }
   } catch (error) {
     logger.error('Reset password action error', error);
