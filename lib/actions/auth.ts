@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getSupabaseServerClient } from '../supabase/server'
-import { LoginSchema, SignupSchema } from '../validations'
+import { LoginSchema, SignupSchema, ResetPasswordSchema } from '../validations'
 import { logger } from '../logger'
 import { checkRateLimit } from '../rate-limit'
 import { headers } from 'next/headers'
@@ -111,30 +111,38 @@ export async function signup(formData: FormData) {
 
 export async function resetPassword(formData: FormData) {
   try {
+    // Rate limiting
     const ip = (await headers()).get('x-forwarded-for') || '127.0.0.1';
-    if (!checkRateLimit(ip, 'resetPassword', 3, 15 * 60 * 1000)) {
-      return { error: 'Too many requests. Try again later.' }
+    if (!checkRateLimit(ip, 'reset', 3, 15 * 60 * 1000)) {
+      return { error: 'Too many requests. Try again later.' };
     }
 
-    const email = formData.get('email') as string
-    
-    const validatedData = z.object({ email: z.string().email() }).safeParse({ email });
-    if (!validatedData.success) {
-      logger.warn('Reset password validation failed', { ip, errors: validatedData.error.issues });
-      return { error: 'Invalid email' };
+    // Validation
+    const email = formData.get('email') as string;
+    const validated = ResetPasswordSchema.safeParse({ email });
+    if (!validated.success) {
+      return { error: 'Invalid email address' };
     }
 
-    const supabase = await getSupabaseServerClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(validatedData.data.email)
+    const supabase = await getSupabaseServerClient();
+
+    // ✅ FIX: Add redirectTo
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      validated.data.email,
+      {
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      }
+    );
+
     if (error) {
-      logger.warn('Failed reset password attempt', { email: validatedData.data.email, ip });
-      return { error: error.message }
+      logger.error('Password reset error', { error: error.message });
+      return { error: 'Failed to send reset email' };
     }
-    logger.info('Password reset requested', { email: validatedData.data.email, ip });
-    return { success: true }
+
+    return { success: true };
   } catch (error) {
-    logger.error('Reset password action error', error);
-    return { error: 'An unexpected error occurred' }
+    logger.error('Password reset error', error);
+    return { error: 'Something went wrong' };
   }
 }
 
