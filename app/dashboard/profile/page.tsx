@@ -1,14 +1,32 @@
 import { getProfile } from '@/lib/actions/profile'
 import ProfileForm from '../ProfileForm'
 
-export default async function ProfilePage() {
-  const profile = await getProfile()
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ required?: string; next?: string }>;
+}) {
+  const params = await searchParams;
+  const isRequired = params.required === '1';
+  const nextUrl = params.next || '/dashboard';
+  const profile = await getProfile();
 
   return (
     <div className="space-y-6 max-w-2xl">
+      {isRequired && (
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-lg">
+          <p className="font-semibold text-amber-900">⚠️ Complete your profile</p>
+          <p className="text-sm text-amber-800 mt-1">
+            Please fill in your <strong>name, phone number, and delivery address</strong> to continue joining the pool.
+          </p>
+        </div>
+      )}
+
       <div>
         <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
-        <p className="text-slate-500 text-sm mt-1">Manage your account and delivery details.</p>
+        <p className="text-slate-500 text-sm mt-1">
+          {isRequired ? 'All fields are required to continue.' : 'Update your account details.'}
+        </p>
       </div>
 
       {/* Account info card */}
@@ -34,7 +52,7 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      {profile && <ProfileForm profile={profile} />}
+      {profile && <ProfileForm profile={profile} redirectTo={nextUrl} />}
     </div>
-  )
+  );
 }

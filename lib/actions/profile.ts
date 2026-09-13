@@ -67,3 +67,27 @@ export async function updateProfile(formData: FormData) {
     return { error: 'An unexpected error occurred' }
   }
 }
+
+export async function isProfileComplete(): Promise<boolean> {
+  try {
+    const supabase = await getSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, phone, address')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (!profile) return false;
+
+    return !!(
+      profile.full_name?.trim() &&
+      profile.phone?.trim() &&
+      profile.address?.trim()
+    );
+  } catch {
+    return false;
+  }
+}

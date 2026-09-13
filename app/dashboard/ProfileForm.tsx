@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { updateProfile } from '@/lib/actions/profile'
+import { useRouter } from 'next/navigation'
 
 type Profile = {
   id?: string
@@ -12,10 +13,17 @@ type Profile = {
   address?: string
 }
 
-export default function ProfileForm({ profile }: { profile: Profile }) {
+export default function ProfileForm({ 
+  profile, 
+  redirectTo = '/dashboard' 
+}: { 
+  profile: Profile; 
+  redirectTo?: string;
+}) {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
+  const router = useRouter();
 
   async function handleSubmit(formData: FormData) {
     setIsPending(true)
@@ -27,6 +35,10 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
       setError(result.error)
     } else {
       setMessage('Profile updated successfully!')
+      setTimeout(() => {
+        router.push(redirectTo);
+        router.refresh();
+      }, 800);
     }
   }
 
@@ -46,25 +58,34 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Full Name <span className="text-red-500">*</span>
+            </label>
             <input
               name="full_name"
               type="text"
+              required
               defaultValue={profile?.full_name || ''}
               className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Phone Number <span className="text-red-500">*</span>
+            </label>
             <input
               name="phone"
               type="tel"
+              required
+              placeholder="9876543210"
               defaultValue={profile?.phone || ''}
               className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Company Name</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Company Name <span className="text-slate-400 text-xs">(optional)</span>
+            </label>
             <input
               name="company_name"
               type="text"
@@ -84,10 +105,13 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Delivery Address</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Delivery Address <span className="text-red-500">*</span>
+          </label>
           <textarea
             name="address"
             rows={3}
+            required
             defaultValue={profile?.address || ''}
             className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm resize-none"
             placeholder="Building, Street, City, State, PIN"

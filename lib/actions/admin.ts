@@ -243,7 +243,7 @@ export async function getAdminOrders() {
       .select(`
         *,
         pools ( id, products ( name ) ),
-        profiles ( company_name, phone, address )
+        profiles ( full_name, company_name, phone, address )
       `)
       .order('created_at', { ascending: false })
     return data || []

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import PricingSlabsTable from '@/components/PricingSlabsTable'
 import { getCurrentPrice, joinPool } from '@/lib/actions/order'
+import { isProfileComplete } from '@/lib/actions/profile'
 
 export default function PoolDetailClient({ pool }: { pool: any }) {
   const [quantity, setQuantity] = useState<number>(pool.pool_tiers?.[0]?.min_qty || 1)
@@ -54,6 +55,16 @@ export default function PoolDetailClient({ pool }: { pool: any }) {
     }
 
     setIsJoining(true)
+
+    // Check if profile is complete
+    const complete = await isProfileComplete();
+    if (!complete) {
+      alert('Please complete your profile (name, phone, address) before joining a pool.');
+      router.push(`/dashboard/profile?required=1&next=/pool/${pool.id}`);
+      setIsJoining(false);
+      return;
+    }
+
     const result = await joinPool(pool.id, quantity)
     
     if (result.error) {
