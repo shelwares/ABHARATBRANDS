@@ -88,6 +88,14 @@ export async function joinPool(poolId: string, quantity: number) {
     if (!pool) return { error: 'Pool not found' }
 
     // 2. Insert order
+    logger.info('About to insert order', {
+      poolId: validatedData.data.poolId,
+      userId: user.id,
+      quantity: validatedData.data.quantity,
+      unit_price_at_join: pricingResult.price,
+      logistics_fee_applied: pricingResult.logisticsFee,
+    });
+
     const { data: order, error: orderError } = await supabase
       .from('pool_orders')
       .insert({
@@ -99,11 +107,23 @@ export async function joinPool(poolId: string, quantity: number) {
         status: 'joined' 
       })
       .select('id')
-      .single()
+      .maybeSingle()
 
     if (orderError) {
-      logger.error('Order creation error:', orderError)
-      return { error: 'Failed to create order' }
+      logger.error('INSERT ORDER FAILED', { 
+        error: orderError.message,
+        code: orderError.code,
+        details: orderError.details,
+        hint: orderError.hint,
+        poolId: validatedData.data.poolId,
+        userId: user.id,
+        quantity: validatedData.data.quantity,
+      });
+      return { error: `DB Error: ${orderError.message} (code: ${orderError.code})` };
+    }
+
+    if (!order) {
+       return { error: 'Order creation failed (no data returned)' };
     }
 
     // 3. Update pool quantity
