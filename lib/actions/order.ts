@@ -51,95 +51,87 @@ export async function getCurrentPrice(poolId: string, additionalQuantity: number
   }
 }
 
+import { revalidatePath } from 'next/cache';
+
 export async function joinPool(poolId: string, quantity: number) {
+  console.log('=== JOIN POOL START ===');
+  console.log('poolId:', poolId);
+  console.log('quantity:', quantity);
+  
   try {
-    const ip = (await headers()).get('x-forwarded-for') || '127.0.0.1';
+    const supabase = await getSupabaseServerClient();
+    console.log('1. Supabase client created');
     
-    const supabase = await getSupabaseServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    console.log('2. Auth check - user:', user?.id, 'authError:', authError?.message);
     if (!user) {
-      return { error: 'Unauthorized' }
-    }
-
-    if (!checkRateLimit(ip, `joinPool:${user.id}`, 10, 60 * 1000)) {
-      return { error: 'Too many join attempts. Try again later.' };
-    }
-
-    const validatedData = JoinPoolSchema.safeParse({ poolId, quantity });
-    if (!validatedData.success) {
-      logger.warn('Join pool validation failed', { userId: user.id, errors: validatedData.error.issues });
-      return { error: 'Invalid input data' };
-    }
-
-    // Calculate pricing
-    const pricingResult = await getCurrentPrice(validatedData.data.poolId, validatedData.data.quantity)
-    if (pricingResult.error) {
-      return { error: pricingResult.error }
+      console.log('2a. NOT AUTHENTICATED - returning');
+      return { error: 'Not authenticated' };
     }
     
-    // 1. Get current pool details
-    const { data: pool } = await supabase
+    const { data: pool, error: poolError } = await supabase
       .from('pools')
-      .select('current_quantity')
-      .eq('id', validatedData.data.poolId)
-      .single()
-      
-    if (!pool) return { error: 'Pool not found' }
-
-    // 2. Insert order
-    logger.info('About to insert order', {
-      poolId: validatedData.data.poolId,
-      userId: user.id,
-      quantity: validatedData.data.quantity,
-      unit_price_at_join: pricingResult.price,
-      logistics_fee_applied: pricingResult.logisticsFee,
-    });
-
-    const { data: order, error: orderError } = await supabase
+      .select('*, pool_tiers(*)')
+      .eq('id', poolId)
+      .maybeSingle();
+    console.log('3. Pool fetch - pool:', pool?.id, 'error:', poolError?.message);
+    console.log('3a. Pool tiers count:', pool?.pool_tiers?.length);
+    if (!pool) {
+      console.log('3b. POOL NOT FOUND');
+      return { error: 'Pool not found' };
+    }
+    
+    const tier = await getCurrentPrice(poolId, quantity);
+    console.log('4. Tier calculated:', JSON.stringify(tier));
+    if (!tier) {
+      console.log('4a. NO TIER FOUND');
+      return { error: 'No tier found for this quantity' };
+    }
+    
+    const insertData = {
+      pool_id: poolId,
+      buyer_id: user.id,
+      quantity,
+      unit_price_at_join: tier.price,
+      logistics_fee_applied: tier.logisticsFee,
+      status: 'joined',
+    };
+    console.log('5. Insert data:', JSON.stringify(insertData));
+    
+    const { data: order, error: insertError } = await supabase
       .from('pool_orders')
-      .insert({
-        pool_id: validatedData.data.poolId,
-        buyer_id: user.id,
-        quantity: validatedData.data.quantity,
-        unit_price_at_join: pricingResult.price,
-        logistics_fee_applied: pricingResult.logisticsFee,
-        status: 'joined' 
-      })
-      .select('id')
-      .maybeSingle()
-
-    if (orderError) {
-      logger.error('INSERT ORDER FAILED', { 
-        error: orderError.message,
-        code: orderError.code,
-        details: orderError.details,
-        hint: orderError.hint,
-        poolId: validatedData.data.poolId,
-        userId: user.id,
-        quantity: validatedData.data.quantity,
-      });
-      return { error: `DB Error: ${orderError.message} (code: ${orderError.code})` };
+      .insert(insertData)
+      .select()
+      .maybeSingle();
+    
+    console.log('6. Insert result - order:', order?.id);
+    console.log('6a. Insert error:', JSON.stringify(insertError));
+    console.log('6b. Insert error message:', insertError?.message);
+    console.log('6c. Insert error code:', insertError?.code);
+    console.log('6d. Insert error hint:', insertError?.hint);
+    console.log('6e. Insert error details:', insertError?.details);
+    
+    if (insertError) {
+      console.log('7. INSERT FAILED - returning error');
+      return { 
+        error: `DB: ${insertError.message} (code: ${insertError.code})` 
+      };
     }
-
-    if (!order) {
-       return { error: 'Order creation failed (no data returned)' };
-    }
-
-    // 3. Update pool quantity
+    
+    console.log('8. Update pool quantity');
     const { error: updateError } = await supabase
       .from('pools')
-      .update({ current_quantity: pool.current_quantity + validatedData.data.quantity })
-      .eq('id', validatedData.data.poolId)
-
-    if (updateError) {
-      logger.error('Pool update error:', updateError)
-    }
-
-    return { orderId: order.id }
-  } catch (error) {
-    logger.error('Join pool action error', error)
-    return { error: 'An unexpected error occurred' }
+      .update({ current_quantity: (pool.current_quantity || 0) + quantity })
+      .eq('id', poolId);
+    console.log('8a. Update error:', updateError?.message);
+    
+    console.log('9. SUCCESS! Order ID:', order?.id);
+    revalidatePath('/dashboard');
+    return { orderId: order?.id };
+  } catch (e: any) {
+    console.log('10. EXCEPTION CAUGHT:', e.message);
+    console.log('10a. Stack:', e.stack);
+    return { error: e.message };
   }
 }
 

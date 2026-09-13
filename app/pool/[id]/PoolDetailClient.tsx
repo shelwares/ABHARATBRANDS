@@ -53,7 +53,8 @@ export default function PoolDetailClient({ pool }: { pool: any }) {
     const result = await joinPool(pool.id, quantity)
     
     if (result.error) {
-      alert(`Error joining pool: ${result.error}`)
+      console.log('CLIENT: joinPool returned error:', result.error);
+      alert('Error joining pool: ' + result.error);
       setIsJoining(false)
     } else if (result.orderId) {
       router.push(`/checkout/${result.orderId}`)
