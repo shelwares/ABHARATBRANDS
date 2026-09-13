@@ -7,47 +7,51 @@ import { logger } from '../logger'
 import { checkRateLimit } from '../rate-limit'
 import { headers } from 'next/headers'
 
-export async function getCurrentPrice(poolId: string, additionalQuantity: number) {
+export async function getCurrentPrice(poolId: string, quantity: number) {
   try {
-    const supabase = await getSupabaseServerClient()
-    
-    const { data: pool, error: poolError } = await supabase
+    const supabase = await getSupabaseServerClient();
+    const { data: pool, error } = await supabase
       .from('pools')
-      .select('current_quantity')
+      .select('current_quantity, pool_tiers(*)')
       .eq('id', poolId)
-      .single()
+      .maybeSingle();
 
-    if (poolError || !pool) {
-      return { error: 'Pool not found' }
+    if (error) {
+      console.log('getCurrentPrice error:', error.message);
+      return null;
+    }
+    if (!pool || !pool.pool_tiers || pool.pool_tiers.length === 0) {
+      console.log('No pool or tiers found');
+      return null;
     }
 
-    const projectedQuantity = pool.current_quantity + additionalQuantity
+    const projectedQty = (pool.current_quantity || 0) + quantity;
+    const sortedTiers = [...pool.pool_tiers].sort((a, b) => a.min_qty - b.min_qty);
 
-    const { data: tiers, error: tiersError } = await supabase
-      .from('pool_tiers')
-      .select('*')
-      .eq('pool_id', poolId)
-      .order('min_qty', { ascending: true })
-
-    if (tiersError || !tiers || tiers.length === 0) {
-      return { error: 'Pricing tiers not found' }
-    }
-
-    let activeTier = tiers[0]
-    for (const tier of tiers) {
-      if (projectedQuantity >= tier.min_qty) {
-        activeTier = tier
+    // Find the tier where projectedQty >= min_qty
+    let applicableTier = sortedTiers[0];
+    for (const tier of sortedTiers) {
+      if (projectedQty >= tier.min_qty) {
+        applicableTier = tier;
       }
     }
 
-    return {
-      price: activeTier.buyer_price,
-      logisticsFee: activeTier.logistics_fee || 0,
-      projectedQuantity
+    console.log('Applicable tier:', JSON.stringify(applicableTier));
+    console.log('buyer_price:', applicableTier.buyer_price, 'logistics_fee:', applicableTier.logistics_fee);
+
+    // Validate — buyer_price must exist
+    if (!applicableTier || applicableTier.buyer_price === null || applicableTier.buyer_price === undefined) {
+      console.log('INVALID TIER — buyer_price missing');
+      return null;
     }
-  } catch (error) {
-    logger.error('Error fetching current price', error);
-    return { error: 'An unexpected error occurred' };
+
+    return {
+      buyer_price: Number(applicableTier.buyer_price),
+      logistics_fee: Number(applicableTier.logistics_fee) || 0,
+    };
+  } catch (e: any) {
+    console.log('getCurrentPrice exception:', e.message);
+    return null;
   }
 }
 
@@ -82,21 +86,22 @@ export async function joinPool(poolId: string, quantity: number) {
     }
     
     const tier = await getCurrentPrice(poolId, quantity);
-    console.log('4. Tier calculated:', JSON.stringify(tier));
-    if (!tier) {
-      console.log('4a. NO TIER FOUND');
-      return { error: 'No tier found for this quantity' };
+    console.log('Tier returned:', JSON.stringify(tier));
+    
+    if (!tier || tier.buyer_price === null || tier.buyer_price === undefined) {
+      console.log('BLOCKING INSERT: tier.buyer_price is null/undefined');
+      return { error: 'Pricing not available for this pool. Please contact support.' };
     }
     
     const insertData = {
       pool_id: poolId,
       buyer_id: user.id,
       quantity,
-      unit_price_at_join: tier.price,
-      logistics_fee_applied: tier.logisticsFee,
+      unit_price_at_join: Number(tier.buyer_price), // Force number
+      logistics_fee_applied: Number(tier.logistics_fee) || 0,
       status: 'joined',
     };
-    console.log('5. Insert data:', JSON.stringify(insertData));
+    console.log('Final insert data:', JSON.stringify(insertData));
     
     const { data: order, error: insertError } = await supabase
       .from('pool_orders')
