@@ -16,6 +16,9 @@ export async function proxy(request: NextRequest) {
   return response;
 }
 
+// Next.js 16 requires a default or named "middleware" export from middleware.ts
+export default proxy;
+
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
