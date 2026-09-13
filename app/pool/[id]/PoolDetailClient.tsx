@@ -27,10 +27,14 @@ export default function PoolDetailClient({ pool }: { pool: any }) {
     
     const fetchPrice = async () => {
       const res = await getCurrentPrice(pool.id, quantity)
-      if (isMounted && !res.error && res.price) {
-        setProjectedPrice(res.price)
-        setLogisticsFee(res.logisticsFee || 0)
+      if (!isMounted) return;
+      if (!res) {
+        setProjectedPrice(0)
+        setLogisticsFee(0)
+        return;
       }
+      setProjectedPrice(res.buyer_price)
+      setLogisticsFee(res.logistics_fee)
     }
     
     // basic debounce
