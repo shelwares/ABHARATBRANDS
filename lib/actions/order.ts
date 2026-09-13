@@ -159,7 +159,7 @@ export async function getOrderById(orderId: string) {
       `)
       .eq('id', orderId)
       .eq('buyer_id', user.id) 
-      .single()
+      .maybeSingle()
 
     if (error) {
       logger.error('Error fetching order:', error)

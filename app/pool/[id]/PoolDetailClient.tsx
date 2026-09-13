@@ -72,7 +72,8 @@ export default function PoolDetailClient({ pool }: { pool: any }) {
       alert('Error joining pool: ' + result.error);
       setIsJoining(false)
     } else if (result.orderId) {
-      router.push(`/checkout/${result.orderId}`)
+      router.replace(`/checkout/${result.orderId}`)
+      router.refresh()
     }
   }
 
