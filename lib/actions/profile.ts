@@ -27,44 +27,60 @@ export async function getProfile() {
 
 export async function updateProfile(formData: FormData) {
   try {
-    const supabase = await getSupabaseServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Unauthorized' }
+    const supabase = await getSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not authenticated' };
 
-    const full_name = formData.get('full_name') as string
-    const phone = formData.get('phone') as string
-    const company_name = formData.get('company_name') as string
-    const address = formData.get('address') as string
+    const full_name = (formData.get('full_name') as string || '').trim();
+    const phone = (formData.get('phone') as string || '').trim();
+    const company_name = (formData.get('company_name') as string || '').trim();
+    const address = (formData.get('address') as string || '').trim();
 
-    const validatedData = UpdateProfileSchema.safeParse({ phone, company_name, address });
+    console.log('=== PROFILE UPDATE DATA ===');
+    console.log({ full_name, phone, company_name, address });
+
+    const validatedData = UpdateProfileSchema.safeParse({
+      full_name,
+      phone,
+      company_name,
+      address,
+    });
+
     if (!validatedData.success) {
-      logger.warn('Update profile validation failed', { userId: user.id, errors: validatedData.error.issues });
-      return { error: 'Invalid input data' };
+      console.log('ZOD VALIDATION FAILED:');
+      console.log(JSON.stringify(validatedData.error.issues, null, 2));
+      return { 
+        error: 'Invalid input: ' + validatedData.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')
+      };
     }
 
-    // Update auth user metadata
-    await supabase.auth.updateUser({ data: { full_name } })
+    // Update auth metadata for full_name
+    if (full_name) {
+      await supabase.auth.updateUser({ data: { full_name } });
+    }
 
-    // Upsert profile row
+    // Upsert profile
     const { error } = await supabase
       .from('profiles')
       .upsert({
         id: user.id,
-        phone: validatedData.data.phone,
-        company_name: validatedData.data.company_name,
-        address: validatedData.data.address,
-      })
+        full_name: full_name || null,
+        phone: phone || null,
+        company_name: company_name || null,
+        address: address || null,
+      });
 
     if (error) {
-      logger.error('Error updating profile', error)
-      return { error: 'Failed to update profile' }
+      console.log('DB UPSERT ERROR:', error.message);
+      return { error: 'Database error: ' + error.message };
     }
 
-    revalidatePath('/dashboard')
-    return { success: true }
-  } catch (error) {
-    logger.error('Update profile action error', error)
-    return { error: 'An unexpected error occurred' }
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/profile');
+    return { success: true };
+  } catch (e: any) {
+    console.log('EXCEPTION:', e.message);
+    return { error: e.message };
   }
 }
 

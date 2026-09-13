@@ -6,9 +6,34 @@ export const JoinPoolSchema = z.object({
 });
 
 export const UpdateProfileSchema = z.object({
-  phone: z.string().min(10).max(15),
-  company_name: z.string().min(2).max(100),
-  address: z.string().min(5).max(255),
+  full_name: z
+    .string()
+    .trim()
+    .min(1, 'Full name is required')
+    .max(100, 'Full name is too long')
+    .optional()
+    .or(z.literal('')),
+  phone: z
+    .string()
+    .trim()
+    .min(10, 'Phone must be at least 10 digits')
+    .max(15, 'Phone is too long')
+    .regex(/^[+\d\s\-()]+$/, 'Invalid phone format')
+    .optional()
+    .or(z.literal('')),
+  company_name: z
+    .string()
+    .trim()
+    .max(200, 'Company name is too long')
+    .optional()
+    .or(z.literal('')),
+  address: z
+    .string()
+    .trim()
+    .min(5, 'Address must be at least 5 characters')
+    .max(500, 'Address is too long')
+    .optional()
+    .or(z.literal('')),
 });
 
 export const LoginSchema = z.object({
