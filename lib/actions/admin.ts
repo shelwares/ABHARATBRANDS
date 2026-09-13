@@ -312,3 +312,35 @@ export async function logQC(orderId: string, qc_status: string, remarks: string)
     return { error: 'An unexpected error occurred' };
   }
 }
+
+// ─── Pool Buyers ──────────────────────────────────────────────────────────────
+export async function getPoolBuyers(poolId: string) {
+  await requireAdmin();
+  const supabase = await getSupabaseServerClient();
+
+  const { data: orders, error } = await supabase
+    .from('pool_orders')
+    .select(`
+      id,
+      quantity,
+      unit_price_at_join,
+      logistics_fee_applied,
+      status,
+      created_at,
+      profiles (
+        full_name,
+        phone,
+        company_name,
+        address
+      )
+    `)
+    .eq('pool_id', poolId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    logger.error('Get pool buyers error', { error: error.message });
+    throw new Error('Failed to fetch pool buyers');
+  }
+
+  return orders || [];
+}

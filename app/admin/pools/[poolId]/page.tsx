@@ -20,9 +20,15 @@ export default async function AdminPoolDetailPage({
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between gap-4">
         <Link href="/admin/pools" className="text-slate-500 hover:text-slate-700 text-sm">
           ← Back to Pools
+        </Link>
+        <Link
+          href={`/admin/pools/${poolId}/buyers`}
+          className="inline-block px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+        >
+          View Buyers →
         </Link>
       </div>
 
