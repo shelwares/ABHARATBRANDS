@@ -7,6 +7,43 @@ import { useState } from "react";
 
 const STATUS_OPTIONS = ["joined", "confirmed", "qc_passed", "shipped", "delivered", "cancelled"];
 
+function CopyButton({ text, label }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="ml-1 inline-flex items-center gap-1 text-[10px] text-slate-400 hover:text-indigo-600 transition-colors"
+      title={label ? `Copy ${label}` : 'Copy'}
+    >
+      {copied ? (
+        <>
+          <span className="text-green-600">✓</span>
+          <span className="text-green-600">Copied</span>
+        </>
+      ) : (
+        <>
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          <span>Copy</span>
+        </>
+      )}
+    </button>
+  );
+}
+
 export default function OrdersTableClient({ initialOrders }: { initialOrders: any[] }) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -45,22 +82,38 @@ export default function OrdersTableClient({ initialOrders }: { initialOrders: an
             return (
               <tr key={order.id} className="hover:bg-slate-50">
                 <td className="px-4 py-4 font-mono text-xs text-slate-500">
-                  {order.id.slice(0, 8)}...
+                  <div className="flex items-center">
+                    <span>{order.id.slice(0, 8)}...</span>
+                    <CopyButton text={order.id} label="Order ID" />
+                  </div>
                 </td>
                 <td className="px-4 py-4 font-semibold text-slate-900">
-                  {order.profiles?.full_name || '—'}
+                  <div className="flex items-center">
+                    <span>{order.profiles?.full_name || '—'}</span>
+                    {order.buyer_id && <CopyButton text={order.buyer_id} label="Buyer ID" />}
+                  </div>
                 </td>
                 <td className="px-4 py-4 text-slate-600">
                   {order.profiles?.phone ? (
-                    <a href={`tel:${order.profiles.phone}`} className="text-indigo-600 hover:underline">
-                      {order.profiles.phone}
-                    </a>
+                    <div className="flex items-center">
+                      <a href={`tel:${order.profiles.phone}`} className="text-indigo-600 hover:underline">
+                        {order.profiles.phone}
+                      </a>
+                      <CopyButton text={order.profiles.phone} label="Phone" />
+                    </div>
                   ) : (
                     <span className="text-red-500">Missing</span>
                   )}
                 </td>
-                <td className="px-4 py-4 text-slate-600 text-xs max-w-[200px] truncate" title={order.profiles?.address || ''}>
-                  {order.profiles?.address || <span className="text-red-500">Missing</span>}
+                <td className="px-4 py-4 text-slate-600 text-xs max-w-[200px]">
+                  <div className="flex items-start gap-1">
+                    <span className="truncate" title={order.profiles?.address || ''}>
+                      {order.profiles?.address || <span className="text-red-500">Missing</span>}
+                    </span>
+                    {order.profiles?.address && (
+                      <CopyButton text={order.profiles.address} label="Address" />
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-4 text-slate-600 text-xs">
                   {order.profiles?.company_name || '—'}
