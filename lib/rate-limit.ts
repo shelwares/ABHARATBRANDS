@@ -1,5 +1,16 @@
-// Simple in-memory rate limiting for development
-// In production, replace with @upstash/ratelimit and Redis
+// ⚠️  SECURITY WARNING: This in-memory rate limiter is NOT safe for production.
+//
+// On serverless platforms (Vercel, AWS Lambda), each function invocation may use
+// a different instance with a fresh in-memory state. This means rate limits reset
+// on every cold start, making this completely ineffective for preventing brute-force
+// attacks in a live environment.
+//
+// TODO (REQUIRED before production): Replace with @upstash/ratelimit + Redis:
+//   npm install @upstash/ratelimit @upstash/redis
+//   https://github.com/upstash/ratelimit-js
+//
+// Additionally: rate limiting based on x-forwarded-for is spoofable. Consider
+// rate limiting by email address for auth endpoints in addition to IP.
 
 const rateLimits = new Map<string, { count: number; expiresAt: number }>();
 

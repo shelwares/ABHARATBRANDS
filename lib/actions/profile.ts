@@ -36,9 +36,6 @@ export async function updateProfile(formData: FormData) {
     const company_name = (formData.get('company_name') as string || '').trim();
     const address = (formData.get('address') as string || '').trim();
 
-    console.log('=== PROFILE UPDATE DATA ===');
-    console.log({ full_name, phone, company_name, address });
-
     const validatedData = UpdateProfileSchema.safeParse({
       full_name,
       phone,
@@ -47,8 +44,7 @@ export async function updateProfile(formData: FormData) {
     });
 
     if (!validatedData.success) {
-      console.log('ZOD VALIDATION FAILED:');
-      console.log(JSON.stringify(validatedData.error.issues, null, 2));
+      logger.warn('Profile update validation failed', { userId: user.id });
       return { 
         error: 'Invalid input: ' + validatedData.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')
       };
@@ -71,16 +67,16 @@ export async function updateProfile(formData: FormData) {
       });
 
     if (error) {
-      console.log('DB UPSERT ERROR:', error.message);
-      return { error: 'Database error: ' + error.message };
+      logger.error('Profile upsert error', error);
+      return { error: 'Failed to update profile. Please try again.' };
     }
 
     revalidatePath('/dashboard');
     revalidatePath('/dashboard/profile');
     return { success: true };
   } catch (e: any) {
-    console.log('EXCEPTION:', e.message);
-    return { error: e.message };
+    logger.error('updateProfile exception', e);
+    return { error: 'An unexpected error occurred. Please try again.' };
   }
 }
 

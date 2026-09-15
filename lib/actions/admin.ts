@@ -35,6 +35,7 @@ export async function requireAdmin() {
 // ─── Dashboard Stats ────────────────────────────────────────────────────────────
 export async function getAdminStats() {
   try {
+    await requireAdmin()
     const supabase = await getSupabaseServerClient()
     const [products, pools, orders, buyers] = await Promise.all([
       supabase.from('products').select('id', { count: 'exact', head: true }),
@@ -57,6 +58,7 @@ export async function getAdminStats() {
 // ─── Products ──────────────────────────────────────────────────────────────────
 export async function getAdminProducts() {
   try {
+    await requireAdmin()
     const supabase = await getSupabaseServerClient()
     const { data } = await supabase
       .from('products')
@@ -106,6 +108,7 @@ export async function createProduct(formData: FormData) {
 // ─── Pools ────────────────────────────────────────────────────────────────────
 export async function getAdminPools() {
   try {
+    await requireAdmin()
     const supabase = await getSupabaseServerClient()
     const { data } = await supabase
       .from('pools')
@@ -120,6 +123,7 @@ export async function getAdminPools() {
 
 export async function getAdminPool(poolId: string) {
   try {
+    await requireAdmin()
     const supabase = await getSupabaseServerClient()
     const { data } = await supabase
       .from('pools')
@@ -237,6 +241,7 @@ export async function updatePoolStatus(poolId: string, status: string) {
 // ─── Orders ───────────────────────────────────────────────────────────────────
 export async function getAdminOrders() {
   try {
+    await requireAdmin()
     const supabase = await getSupabaseServerClient()
     const { data } = await supabase
       .from('pool_orders')
