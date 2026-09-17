@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use server'
 
+import { joinLimiter, getClientIp } from '@/lib/rate-limit';
 import { getSupabaseServerClient } from '../supabase/server'
 import { JoinPoolSchema } from '../validations'
 import { logger } from '../logger'
@@ -56,6 +57,12 @@ export async function joinPool(poolId: string, quantity: number) {
     const validated = JoinPoolSchema.safeParse({ poolId, quantity });
     if (!validated.success) {
       return { error: 'Invalid input: poolId must be a valid UUID and quantity must be a positive integer' };
+    }
+
+    const ip = await getClientIp();
+    if (joinLimiter) {
+      const { success } = await joinLimiter.limit(ip);
+      if (!success) return { error: 'Too many requests. Try again later.' };
     }
 
     const supabase = await getSupabaseServerClient();

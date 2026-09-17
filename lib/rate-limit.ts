@@ -1,33 +1,54 @@
-// ⚠️  SECURITY WARNING: This in-memory rate limiter is NOT safe for production.
-//
-// On serverless platforms (Vercel, AWS Lambda), each function invocation may use
-// a different instance with a fresh in-memory state. This means rate limits reset
-// on every cold start, making this completely ineffective for preventing brute-force
-// attacks in a live environment.
-//
-// TODO (REQUIRED before production): Replace with @upstash/ratelimit + Redis:
-//   npm install @upstash/ratelimit @upstash/redis
-//   https://github.com/upstash/ratelimit-js
-//
-// Additionally: rate limiting based on x-forwarded-for is spoofable. Consider
-// rate limiting by email address for auth endpoints in addition to IP.
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+import { headers } from 'next/headers';
 
-const rateLimits = new Map<string, { count: number; expiresAt: number }>();
+const url = process.env.UPSTASH_REDIS_REST_URL;
+const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-export function checkRateLimit(ip: string, action: string, limit: number, windowMs: number): boolean {
-  const key = `${ip}:${action}`;
-  const now = Date.now();
-  const record = rateLimits.get(key);
+const redis = url && token ? new Redis({ url, token }) : null;
 
-  if (!record || now > record.expiresAt) {
-    rateLimits.set(key, { count: 1, expiresAt: now + windowMs });
-    return true; // Allowed
-  }
+// Login: 5 attempts per 15 min per IP+email
+export const loginLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(5, '15 m'),
+      analytics: true,
+      prefix: 'rl:login',
+    })
+  : null;
 
-  if (record.count >= limit) {
-    return false; // Rate limited
-  }
+// Signup: 3 attempts per hour per IP
+export const signupLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(3, '1 h'),
+      analytics: true,
+      prefix: 'rl:signup',
+    })
+  : null;
 
-  record.count += 1;
-  return true; // Allowed
+// Password reset: 3 per 15 min per IP
+export const resetLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(3, '15 m'),
+      analytics: true,
+      prefix: 'rl:reset',
+    })
+  : null;
+
+// Pool join: 10 per minute per user
+export const joinLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, '1 m'),
+      analytics: true,
+      prefix: 'rl:join',
+    })
+  : null;
+
+// Get real client IP — Vercel sets x-real-ip from trusted edge
+export async function getClientIp(): Promise<string> {
+  const h = await headers();
+  return h.get('x-real-ip') || '127.0.0.1';
 }

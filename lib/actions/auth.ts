@@ -5,17 +5,17 @@ import { redirect } from 'next/navigation'
 import { getSupabaseServerClient } from '../supabase/server'
 import { LoginSchema, SignupSchema, ResetPasswordSchema } from '../validations'
 import { logger } from '../logger'
-import { checkRateLimit } from '../rate-limit'
+import { loginLimiter, signupLimiter, resetLimiter, getClientIp } from '@/lib/rate-limit';
 import { headers } from 'next/headers'
 
 export async function login(formData: FormData) {
   try {
-    const ip = (await headers()).get('x-forwarded-for') || '127.0.0.1';
-    if (!checkRateLimit(ip, 'login', 5, 15 * 60 * 1000)) {
-      return redirect('/auth/login?message=Too many login attempts. Try again later.')
+    const ip = await getClientIp();
+    const email = (formData.get('email') as string || '').toLowerCase().trim();
+    if (loginLimiter) {
+      const { success } = await loginLimiter.limit(`${ip}:${email}`);
+      if (!success) return redirect('/auth/login?message=Too many login attempts. Try again in 15 minutes.');
     }
-
-    const email = formData.get('email') as string
     const password = formData.get('password') as string
 
     const validatedData = LoginSchema.safeParse({ email, password });
@@ -54,9 +54,10 @@ export async function login(formData: FormData) {
 
 export async function signup(formData: FormData) {
   try {
-    const ip = (await headers()).get('x-forwarded-for') || '127.0.0.1';
-    if (!checkRateLimit(ip, 'signup', 3, 60 * 60 * 1000)) {
-      return redirect('/auth/signup?message=Too many signup attempts. Try again later.')
+    const ip = await getClientIp();
+    if (signupLimiter) {
+      const { success } = await signupLimiter.limit(ip);
+      if (!success) return redirect('/auth/signup?message=Too many signup attempts. Try again in an hour.');
     }
 
     const email = formData.get('email') as string
@@ -112,9 +113,10 @@ export async function signup(formData: FormData) {
 export async function resetPassword(formData: FormData) {
   try {
     // Rate limiting
-    const ip = (await headers()).get('x-forwarded-for') || '127.0.0.1';
-    if (!checkRateLimit(ip, 'reset', 3, 15 * 60 * 1000)) {
-      return { error: 'Too many requests. Try again later.' };
+    const ip = await getClientIp();
+    if (resetLimiter) {
+      const { success } = await resetLimiter.limit(ip);
+      if (!success) return { error: 'Too many reset attempts. Try again in 15 minutes.' };
     }
 
     // Validation
