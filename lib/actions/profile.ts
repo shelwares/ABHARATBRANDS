@@ -31,17 +31,21 @@ export async function updateProfile(formData: FormData) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Not authenticated' };
 
-    const full_name = (formData.get('full_name') as string || '').trim();
-    const phone = (formData.get('phone') as string || '').trim();
-    const company_name = (formData.get('company_name') as string || '').trim();
-    const address = (formData.get('address') as string || '').trim();
+    const data = {
+      full_name: (formData.get('full_name') as string || '').trim(),
+      phone: (formData.get('phone') as string || '').trim(),
+      company_name: (formData.get('company_name') as string || '').trim(),
+      address_line1: (formData.get('address_line1') as string || '').trim(),
+      address_line2: (formData.get('address_line2') as string || '').trim(),
+      area: (formData.get('area') as string || '').trim(),
+      city: (formData.get('city') as string || '').trim(),
+      district: (formData.get('district') as string || '').trim(),
+      state: (formData.get('state') as string || '').trim(),
+      pincode: (formData.get('pincode') as string || '').trim(),
+      country: (formData.get('country') as string || 'India').trim(),
+    };
 
-    const validatedData = UpdateProfileSchema.safeParse({
-      full_name,
-      phone,
-      company_name,
-      address,
-    });
+    const validatedData = UpdateProfileSchema.safeParse(data);
 
     if (!validatedData.success) {
       logger.warn('Profile update validation failed', { userId: user.id });
@@ -51,20 +55,14 @@ export async function updateProfile(formData: FormData) {
     }
 
     // Update auth metadata for full_name
-    if (full_name) {
-      await supabase.auth.updateUser({ data: { full_name } });
+    if (data.full_name) {
+      await supabase.auth.updateUser({ data: { full_name: data.full_name } });
     }
 
     // Upsert profile
     const { error } = await supabase
       .from('profiles')
-      .upsert({
-        id: user.id,
-        full_name: full_name || null,
-        phone: phone || null,
-        company_name: company_name || null,
-        address: address || null,
-      });
+      .upsert({ id: user.id, ...validatedData.data });
 
     if (error) {
       logger.error('Profile upsert error', error);
@@ -88,7 +86,7 @@ export async function isProfileComplete(): Promise<boolean> {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name, phone, address')
+      .select('full_name, phone, address_line1, area, city, district, state, pincode')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -97,7 +95,12 @@ export async function isProfileComplete(): Promise<boolean> {
     return !!(
       profile.full_name?.trim() &&
       profile.phone?.trim() &&
-      profile.address?.trim()
+      profile.address_line1?.trim() &&
+      profile.area?.trim() &&
+      profile.city?.trim() &&
+      profile.district?.trim() &&
+      profile.state?.trim() &&
+      profile.pincode?.trim()
     );
   } catch {
     return false;

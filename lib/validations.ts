@@ -27,13 +27,14 @@ export const UpdateProfileSchema = z.object({
     .max(200, 'Company name is too long')
     .optional()
     .or(z.literal('')),
-  address: z
-    .string()
-    .trim()
-    .min(5, 'Address must be at least 5 characters')
-    .max(500, 'Address is too long')
-    .optional()
-    .or(z.literal('')),
+  address_line1: z.string().trim().min(5, 'Address is required').max(200),
+  address_line2: z.string().trim().max(200).optional().or(z.literal('')),
+  area: z.string().trim().min(2, 'Area is required').max(100),
+  city: z.string().trim().min(2, 'City is required').max(100),
+  district: z.string().trim().min(2, 'District is required').max(100),
+  state: z.string().trim().min(2, 'State is required').max(100),
+  pincode: z.string().trim().regex(/^\d{6}$/, 'PIN code must be 6 digits'),
+  country: z.string().trim().default('India'),
 });
 
 export const LoginSchema = z.object({

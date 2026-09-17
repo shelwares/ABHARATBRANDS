@@ -11,6 +11,14 @@ type Profile = {
   phone?: string
   company_name?: string
   address?: string
+  address_line1?: string
+  address_line2?: string
+  area?: string
+  city?: string
+  district?: string
+  state?: string
+  pincode?: string
+  country?: string
 }
 
 export default function ProfileForm({ 
@@ -104,17 +112,114 @@ export default function ProfileForm({
           </div>
         </div>
 
+        {/* Address Line 1 (House/Flat/Building) */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Delivery Address <span className="text-red-500">*</span>
+            Address Line 1 (House/Flat, Building) <span className="text-red-500">*</span>
           </label>
-          <textarea
-            name="address"
-            rows={3}
+          <input
+            name="address_line1"
+            defaultValue={profile?.address_line1 || ''}
             required
-            defaultValue={profile?.address || ''}
-            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm resize-none"
-            placeholder="Building, Street, City, State, PIN"
+            placeholder="Flat 201, Shivneri Apartment"
+            className="w-full border border-slate-300 rounded-lg px-4 py-2"
+          />
+        </div>
+
+        {/* Address Line 2 (Landmark - optional) */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Address Line 2 (Landmark - optional)
+          </label>
+          <input
+            name="address_line2"
+            defaultValue={profile?.address_line2 || ''}
+            placeholder="Near City Mall"
+            className="w-full border border-slate-300 rounded-lg px-4 py-2"
+          />
+        </div>
+
+        {/* Area & Pincode row */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Area / Locality <span className="text-red-500">*</span>
+            </label>
+            <input
+              name="area"
+              defaultValue={profile?.area || ''}
+              required
+              placeholder="MG Road"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              PIN Code <span className="text-red-500">*</span>
+            </label>
+            <input
+              name="pincode"
+              defaultValue={profile?.pincode || ''}
+              required
+              pattern="\d{6}"
+              maxLength={6}
+              placeholder="411001"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2"
+            />
+          </div>
+        </div>
+
+        {/* City & District row */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              City <span className="text-red-500">*</span>
+            </label>
+            <input
+              name="city"
+              defaultValue={profile?.city || ''}
+              required
+              placeholder="Pune"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              District <span className="text-red-500">*</span>
+            </label>
+            <input
+              name="district"
+              defaultValue={profile?.district || ''}
+              required
+              placeholder="Pune"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2"
+            />
+          </div>
+        </div>
+
+        {/* State */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            State <span className="text-red-500">*</span>
+          </label>
+          <input
+            name="state"
+            defaultValue={profile?.state || ''}
+            required
+            placeholder="Maharashtra"
+            className="w-full border border-slate-300 rounded-lg px-4 py-2"
+          />
+        </div>
+
+        {/* Country */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Country
+          </label>
+          <input
+            name="country"
+            defaultValue={profile?.country || 'India'}
+            className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-slate-50"
           />
         </div>
 

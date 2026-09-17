@@ -248,7 +248,7 @@ export async function getAdminOrders() {
       .select(`
         *,
         pools ( id, products ( name ) ),
-        profiles ( full_name, company_name, phone, address )
+        profiles ( full_name, phone, company_name, address_line1, address_line2, area, city, district, state, pincode, country )
       `)
       .order('created_at', { ascending: false })
     return data || []
@@ -336,7 +336,14 @@ export async function getPoolBuyers(poolId: string) {
         full_name,
         phone,
         company_name,
-        address
+        address_line1,
+        address_line2,
+        area,
+        city,
+        district,
+        state,
+        pincode,
+        country
       )
     `)
     .eq('pool_id', poolId)

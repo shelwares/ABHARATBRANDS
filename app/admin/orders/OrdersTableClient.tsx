@@ -7,6 +7,21 @@ import { useState } from "react";
 
 const STATUS_OPTIONS = ["joined", "confirmed", "qc_passed", "shipped", "delivered", "cancelled"];
 
+function formatAddress(profile: any): string {
+  if (!profile) return '';
+  const parts = [
+    profile.address_line1,
+    profile.address_line2,
+    profile.area,
+    profile.city,
+    profile.district,
+    profile.state,
+    profile.pincode,
+    profile.country,
+  ].filter(Boolean);
+  return parts.join(', ');
+}
+
 function CopyButton({ text, label }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -105,15 +120,17 @@ export default function OrdersTableClient({ initialOrders }: { initialOrders: an
                     <span className="text-red-500">Missing</span>
                   )}
                 </td>
-                <td className="px-4 py-4 text-slate-600 text-xs max-w-[200px]">
-                  <div className="flex items-start gap-1">
-                    <span className="truncate" title={order.profiles?.address || ''}>
-                      {order.profiles?.address || <span className="text-red-500">Missing</span>}
-                    </span>
-                    {order.profiles?.address && (
-                      <CopyButton text={order.profiles.address} label="Address" />
-                    )}
-                  </div>
+                <td className="px-4 py-4 text-slate-600 text-xs max-w-[250px]">
+                  {order.profiles?.address_line1 ? (
+                    <div className="flex items-start gap-1">
+                      <span className="truncate" title={formatAddress(order.profiles)}>
+                        {formatAddress(order.profiles)}
+                      </span>
+                      <CopyButton text={formatAddress(order.profiles)} label="Full Address" />
+                    </div>
+                  ) : (
+                    <span className="text-red-500">Missing</span>
+                  )}
                 </td>
                 <td className="px-4 py-4 text-slate-600 text-xs">
                   {order.profiles?.company_name || '—'}
