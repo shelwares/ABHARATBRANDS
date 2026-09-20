@@ -46,7 +46,9 @@ export async function login(formData: FormData) {
     } else {
       redirect('/dashboard')
     }
-  } catch (error) {
+  } catch (error: any) {
+    // redirect() throws a special error — must rethrow so Next.js handles it
+    if (error?.digest?.startsWith('NEXT_REDIRECT')) throw error;
     logger.error('Login action error', error);
     return redirect(`/auth/login?message=An unexpected error occurred`)
   }

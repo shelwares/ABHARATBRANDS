@@ -5,14 +5,33 @@ import { login } from "@/lib/actions/auth";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 
+import { useRouter } from "next/navigation";
+
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setMessage(params.get("message"));
   }, []);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        router.push(profile?.role === 'admin' ? '/admin' : '/dashboard');
+      }
+    };
+    checkSession();
+  }, [router]);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
