@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 export default function ConfirmPage() {
   const [status, setStatus] = useState<"loading" | "error">("loading");
@@ -16,8 +17,10 @@ export default function ConfirmPage() {
       const type = searchParams.get("type") as "recovery" | null;
       const next = searchParams.get("next") || "/auth/reset-password";
 
+      // If no token_hash is present, immediately show an error.
+      // This prevents the page from redirecting if a session already exists.
       if (!token_hash || !type) {
-        setError("Invalid confirmation link.");
+        setError("Invalid or missing reset token. Please request a new link.");
         setStatus("error");
         return;
       }
@@ -34,6 +37,7 @@ export default function ConfirmPage() {
         return;
       }
 
+      // On successful verification, redirect to the password reset page.
       router.replace(next);
     };
 
@@ -44,11 +48,14 @@ export default function ConfirmPage() {
     return (
       <div className="max-w-md mx-auto p-6 mt-10 text-center">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h1 className="text-xl font-bold text-red-800 mb-2">⚠️ Link Invalid</h1>
+          <h1 className="text-xl font-bold text-red-800 mb-2">⚠️ Link Invalid or Expired</h1>
           <p className="text-red-700 text-sm mb-4">{error}</p>
-          <a href="/auth/forgot-password" className="inline-block bg-indigo-600 text-white px-5 py-2 rounded-lg">
-            Request New Reset Link
-          </a>
+          <Link
+            href="/auth/forgot-password"
+            className="inline-block bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700"
+          >
+            Request a New Link
+          </Link>
         </div>
       </div>
     );
