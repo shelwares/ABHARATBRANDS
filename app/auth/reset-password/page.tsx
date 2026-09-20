@@ -11,21 +11,45 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [sessionValid, setSessionValid] = useState<boolean | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    // Verify user has a valid session (from email link)
-    const checkSession = async () => {
-      const supabase = getSupabaseClient();
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) {
-        setSessionValid(false);
-      } else {
-        setSessionValid(true);
+    const supabase = getSupabaseClient();
+
+    // Listen for PASSWORD_RECOVERY event (fires when hash fragment is processed)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log("[RESET] Auth event:", event, "has session:", !!session);
+        if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+          setSessionReady(true);
+        }
       }
+    );
+
+    // Check if session already exists (from hash fragment)
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setSessionReady(true);
+        return;
+      }
+      // Wait for hash fragment to be processed
+      setTimeout(async () => {
+        const { data: { session: s2 } } = await supabase.auth.getSession();
+        if (s2) {
+          setSessionReady(true);
+        } else {
+          setSessionError(
+            "Invalid or expired reset link. Please request a new one."
+          );
+        }
+      }, 2000);
     };
     checkSession();
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,50 +75,47 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     const supabase = getSupabaseClient();
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: password,
-    });
-    setLoading(false);
+    const { error: updateError } = await supabase.auth.updateUser({ password });
 
     if (updateError) {
       setError(updateError.message);
+      setLoading(false);
       return;
     }
 
-    // Sign out so user must log in with new password
     await supabase.auth.signOut();
-
     setSuccess(true);
+    setLoading(false);
+
     setTimeout(() => {
-      router.push("/auth/login?message=Password updated! Please login with your new password.");
+      router.push(
+        "/auth/login?message=Password updated! Please sign in with your new password."
+      );
     }, 2000);
   };
 
-  if (sessionValid === null) {
+  if (sessionError) {
     return (
-      <div className="max-w-md mx-auto p-6 mt-10 text-center">
-        <p className="text-slate-500">Verifying session...</p>
+      <div className="max-w-md mx-auto p-6 mt-10">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <h1 className="text-xl font-bold text-red-800 mb-2">⚠️ Reset Link Invalid</h1>
+          <p className="text-red-700 text-sm mb-4">{sessionError}</p>
+          <Link
+            href="/auth/forgot-password"
+            className="inline-block bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700"
+          >
+            Request New Reset Link
+          </Link>
+        </div>
       </div>
     );
   }
 
-  if (sessionValid === false) {
+  if (!sessionReady) {
     return (
-      <div className="max-w-md mx-auto p-6 mt-10">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h1 className="text-xl font-bold text-red-800 mb-2">
-            ❌ Invalid or expired link
-          </h1>
-          <p className="text-red-700 text-sm mb-4">
-            This password reset link is invalid or has expired. Please request a new one.
-          </p>
-          <Link
-            href="/auth/forgot-password"
-            className="inline-block bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
-          >
-            Request New Link
-          </Link>
-        </div>
+      <div className="max-w-md mx-auto p-6 mt-10 text-center">
+        <div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+        <p className="text-slate-500">Verifying reset link...</p>
       </div>
     );
   }
@@ -103,12 +124,8 @@ export default function ResetPasswordPage() {
     return (
       <div className="max-w-md mx-auto p-6 mt-10 text-center">
         <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <h1 className="text-xl font-bold text-green-800 mb-2">
-            ✅ Password updated!
-          </h1>
-          <p className="text-green-700 text-sm">
-            Redirecting to login...
-          </p>
+          <h1 className="text-xl font-bold text-green-800 mb-2">✅ Password Updated!</h1>
+          <p className="text-green-700 text-sm">Redirecting to login...</p>
         </div>
       </div>
     );
@@ -118,7 +135,7 @@ export default function ResetPasswordPage() {
     <div className="max-w-md mx-auto p-6 mt-10">
       <h1 className="text-2xl font-bold mb-2">Set New Password</h1>
       <p className="text-slate-500 text-sm mb-6">
-        Enter a strong password for your account.
+        Choose a strong password for your account.
       </p>
 
       {error && (
@@ -139,7 +156,7 @@ export default function ResetPasswordPage() {
             required
             minLength={8}
             className="w-full border border-slate-300 rounded-lg px-4 py-2"
-            placeholder="At least 8 chars, 1 uppercase, 1 number"
+            placeholder="Min 8 chars, 1 uppercase, 1 number"
           />
         </div>
 
@@ -154,7 +171,7 @@ export default function ResetPasswordPage() {
             required
             minLength={8}
             className="w-full border border-slate-300 rounded-lg px-4 py-2"
-            placeholder="Re-enter password"
+            placeholder="Re-enter your new password"
           />
         </div>
 

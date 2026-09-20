@@ -131,7 +131,7 @@ export async function resetPassword(formData: FormData) {
     const { error } = await supabase.auth.resetPasswordForEmail(
       validated.data.email,
       {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/auth/reset-password&type=recovery`,
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password`,
       }
     );
 
