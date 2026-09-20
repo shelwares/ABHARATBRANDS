@@ -16,40 +16,23 @@ export default function ResetPasswordPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const supabase = getSupabaseClient();
-
-    // Listen for PASSWORD_RECOVERY event (fires when hash fragment is processed)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log("[RESET] Auth event:", event, "has session:", !!session);
-        if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
-          setSessionReady(true);
-        }
-      }
-    );
-
-    // Check if session already exists (from hash fragment)
-    const checkSession = async () => {
+    const check = async () => {
+      const supabase = getSupabaseClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setSessionReady(true);
-        return;
+      } else {
+        setTimeout(async () => {
+          const { data: { session: s2 } } = await supabase.auth.getSession();
+          if (s2) {
+            setSessionReady(true);
+          } else {
+            setSessionError("Invalid or expired reset link. Please request a new one.");
+          }
+        }, 1500);
       }
-      // Wait for hash fragment to be processed
-      setTimeout(async () => {
-        const { data: { session: s2 } } = await supabase.auth.getSession();
-        if (s2) {
-          setSessionReady(true);
-        } else {
-          setSessionError(
-            "Invalid or expired reset link. Please request a new one."
-          );
-        }
-      }, 2000);
     };
-    checkSession();
-
-    return () => subscription.unsubscribe();
+    check();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

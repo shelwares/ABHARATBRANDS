@@ -33,7 +33,6 @@ export async function updateSession(request: NextRequest) {
 
   const { data } = await supabase.auth.getUser()
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
   const isProtectedRoute =
     request.nextUrl.pathname.startsWith('/dashboard') ||
     request.nextUrl.pathname.startsWith('/admin') ||
@@ -43,7 +42,24 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  if (isAuthRoute && data?.user) {
+  // Paths that should ALWAYS be accessible, even for logged-in users
+  const AUTH_EXEMPT_PATHS = [
+    '/auth/confirm',
+    '/auth/reset-password',
+    '/auth/callback',
+    '/auth/forgot-password',
+  ];
+
+  const isAuthExempt = AUTH_EXEMPT_PATHS.some(path => 
+    request.nextUrl.pathname.startsWith(path)
+  );
+
+  // Only redirect logged-in users away from login/signup pages
+  const isAuthPage = 
+    request.nextUrl.pathname.startsWith('/auth/login') ||
+    request.nextUrl.pathname.startsWith('/auth/signup');
+
+  if (data?.user && isAuthPage && !isAuthExempt) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
