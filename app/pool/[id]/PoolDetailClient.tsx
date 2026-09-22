@@ -145,7 +145,7 @@ export default function PoolDetailClient({ pool }: { pool: any }) {
 
             {/* Pricing slabs */}
             <FadeIn delay={0.2}>
-              <PricingSlabsTable tiers={pool.pool_tiers} currentQty={pool.current_quantity} />
+              <PricingSlabsTable tiers={pool.pool_tiers} currentPoolQty={pool.current_quantity || 0} buyerQty={quantity} />
             </FadeIn>
           </div>
 
@@ -204,10 +204,34 @@ export default function PoolDetailClient({ pool }: { pool: any }) {
                         <span className="text-ink-600">Subtotal ({quantity} units)</span>
                         <span className="font-medium text-ink-900">₹{(quantity * projectedPrice).toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      
+                      <motion.div
+                        key={`logistics-${logisticsFee}`}
+                        initial={{ backgroundColor: "rgba(0,0,0,0)" }}
+                        animate={{
+                          backgroundColor:
+                            logisticsFee === 0
+                              ? "rgba(16, 185, 129, 0.10)"
+                              : logisticsFee <= 25
+                              ? "rgba(245, 158, 11, 0.10)"
+                              : "rgba(239, 68, 68, 0.08)",
+                        }}
+                        transition={{ duration: 0.4 }}
+                        className="flex justify-between px-2 py-1 -mx-2 rounded-md"
+                      >
                         <span className="text-ink-600">Logistics</span>
-                        <span className="font-medium text-ink-900">{logisticsFee > 0 ? `₹${logisticsFee}` : 'Free'}</span>
-                      </div>
+                        <span
+                          className={`font-medium ${
+                            logisticsFee === 0
+                              ? "text-emerald-700"
+                              : logisticsFee <= 25
+                              ? "text-amber-700"
+                              : "text-red-700"
+                          }`}
+                        >
+                          {logisticsFee === 0 ? "Free 🎉" : `₹${logisticsFee}`}
+                        </span>
+                      </motion.div>
 
                       <div className="pt-4 border-t border-ink-200 flex justify-between items-end">
                         <span className="font-bold text-ink-900">Total</span>
