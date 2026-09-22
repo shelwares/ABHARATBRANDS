@@ -23,31 +23,42 @@ export async function getCurrentPrice(poolId: string, quantity: number) {
       return null;
     }
 
-    const projectedQty = (pool.current_quantity || 0) + quantity;
     const sortedTiers = [...pool.pool_tiers].sort((a, b) => a.min_qty - b.min_qty);
 
-    // Find the tier where projectedQty >= min_qty
-    let applicableTier = sortedTiers[0];
+    // ---- PRODUCT PRICE TIER ----
+    // Based on PROJECTED POOL TOTAL (existing pool qty + this buyer's qty)
+    const projectedQty = (pool.current_quantity || 0) + quantity;
+    let priceTier = sortedTiers[0];
     for (const tier of sortedTiers) {
       if (projectedQty >= tier.min_qty) {
-        applicableTier = tier;
+        priceTier = tier;
+      }
+    }
+
+    // ---- DELIVERY FEE TIER ----
+    // Based on BUYER'S OWN QUANTITY ONLY (not pool total)
+    let deliveryTier = sortedTiers[0];
+    for (const tier of sortedTiers) {
+      if (quantity >= tier.min_qty) {
+        deliveryTier = tier;
       }
     }
 
     // Validate — buyer_price must exist
-    if (!applicableTier || applicableTier.buyer_price === null || applicableTier.buyer_price === undefined) {
+    if (!priceTier || priceTier.buyer_price === null || priceTier.buyer_price === undefined) {
       return null;
     }
 
     return {
-      buyer_price: Number(applicableTier.buyer_price),
-      logistics_fee: Number(applicableTier.logistics_fee) || 0,
+      buyer_price: Number(priceTier.buyer_price),
+      logistics_fee: Number(deliveryTier.logistics_fee) || 0,
     };
   } catch (e: any) {
     logger.error('getCurrentPrice exception', e);
     return null;
   }
 }
+
 
 import { revalidatePath } from 'next/cache';
 
