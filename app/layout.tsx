@@ -1,8 +1,21 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Plus_Jakarta_Sans, Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
+import { Toaster } from 'sonner'
 
-const inter = Inter({ subsets: ['latin'] })
+const jakarta = Plus_Jakarta_Sans({ 
+  subsets: ['latin'], 
+  variable: '--font-display',
+  weight: ['400', '500', '600', '700', '800']
+});
+const inter = Inter({ 
+  subsets: ['latin'], 
+  variable: '--font-body' 
+});
+const mono = JetBrains_Mono({ 
+  subsets: ['latin'], 
+  variable: '--font-mono' 
+});
 
 export const metadata: Metadata = {
   title: 'Abhartbrands — Factory Rates. Without the Factory MOQ.',
@@ -24,14 +37,15 @@ export default async function RootLayout({
   const { data: { session } } = await supabase.auth.getSession()
 
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-slate-50 min-h-screen text-slate-900 flex flex-col`}>
+    <html lang="en" className={`${jakarta.variable} ${inter.variable} ${mono.variable}`}>
+      <body className="min-h-screen flex flex-col antialiased">
         <AuthProvider initialUser={session?.user ?? null} initialSession={session}>
           <Navbar />
           <main className="flex-grow">
             {children}
           </main>
           <Footer />
+          <Toaster position="top-right" richColors />
         </AuthProvider>
       </body>
     </html>

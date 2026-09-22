@@ -7,6 +7,12 @@ import { useAuth } from '@/lib/auth/auth-context'
 import PricingSlabsTable from '@/components/PricingSlabsTable'
 import { getCurrentPrice, joinPool } from '@/lib/actions/order'
 import { isProfileComplete } from '@/lib/actions/profile'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { FadeIn } from '@/components/motion/fade-in'
+import { motion } from 'framer-motion'
+import { Minus, Plus, Lock, Clock, ImageIcon } from 'lucide-react'
 
 export default function PoolDetailClient({ pool }: { pool: any }) {
   const [quantity, setQuantity] = useState<number>(pool.pool_tiers?.[0]?.min_qty || 1)
@@ -78,132 +84,160 @@ export default function PoolDetailClient({ pool }: { pool: any }) {
   }
 
   return (
-    <div className="bg-slate-50 min-h-screen py-12 px-4">
+    <div className="bg-ink-50 min-h-screen py-12 px-4">
       <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="grid md:grid-cols-2 lg:grid-cols-5">
-            {/* Left Column: Image & Details */}
-            <div className="lg:col-span-3 p-8 md:p-12 border-b md:border-b-0 md:border-r border-slate-200">
-              <div className="mb-6 flex items-center justify-between">
-                <span className="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                  {product?.category || 'General'}
-                </span>
-                <span className="text-sm font-medium text-amber-600 flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                  Pool Closes in 5 Days
-                </span>
-              </div>
-              
-              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">{product?.name}</h1>
-              <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                {product?.description}
-              </p>
-
-              <div className="aspect-video bg-slate-100 rounded-2xl overflow-hidden mb-8 border border-slate-200">
+        <div className="grid lg:grid-cols-5 gap-8 items-start">
+          {/* Left Column: Image & Details */}
+          <div className="lg:col-span-3 space-y-6">
+            <FadeIn>
+              {/* Image */}
+              <div className="aspect-video bg-ink-100 rounded-2xl overflow-hidden border border-ink-200 shadow-sm">
                 {product?.base_image ? (
                   <img src={product.base_image} alt={product.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                    <span className="text-4xl mb-2">📷</span>
-                    <span>Product Image</span>
+                  <div className="w-full h-full flex flex-col items-center justify-center text-ink-400">
+                    <ImageIcon className="w-12 h-12 mb-2" />
+                    <span className="text-sm">Product Image</span>
                   </div>
                 )}
               </div>
 
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between items-end mb-2">
-                    <h3 className="font-semibold text-slate-900">Pool Progress</h3>
-                    <div className="text-right">
-                      <span className="text-2xl font-bold text-indigo-700">{progressPercentage}%</span>
-                      <span className="text-sm text-slate-500 ml-2">Funded</span>
-                    </div>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                    <div 
-                      className="bg-indigo-600 h-3 rounded-full transition-all duration-1000 ease-out" 
-                      style={{ width: `${progressPercentage}%` }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between text-sm text-slate-600 mt-3 font-medium">
-                    <span>{pool.current_quantity.toLocaleString()} units committed</span>
-                    <span>Goal: {pool.target_quantity.toLocaleString()} units</span>
+              {/* Meta row */}
+              <div className="flex items-center justify-between">
+                <Badge className="bg-brand-primary-50 text-brand-primary-700 border-0">
+                  {product?.category || 'General'}
+                </Badge>
+                <span className="text-sm font-medium text-warning flex items-center gap-1.5">
+                  <Clock className="w-4 h-4" />
+                  Pool Closes in 5 Days
+                </span>
+              </div>
+
+              {/* Title & description */}
+              <h1 className="text-3xl sm:text-4xl font-bold text-ink-900 font-display tracking-tight">{product?.name}</h1>
+              <p className="text-lg text-ink-600 leading-relaxed">{product?.description}</p>
+            </FadeIn>
+
+            {/* Progress */}
+            <FadeIn delay={0.1}>
+              <Card className="p-6">
+                <div className="flex justify-between items-end mb-3">
+                  <h3 className="font-semibold text-ink-900 font-display">Pool Progress</h3>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold text-brand-primary-700">{progressPercentage}%</span>
+                    <span className="text-sm text-ink-500 ml-2">Funded</span>
                   </div>
                 </div>
+                <div className="w-full bg-ink-100 rounded-full h-3 overflow-hidden">
+                  <motion.div
+                    className="bg-brand-primary-500 h-full rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progressPercentage}%` }}
+                    transition={{ duration: 1.2, ease: 'easeOut' }}
+                  />
+                </div>
+                <div className="flex justify-between text-sm text-ink-600 mt-3 font-medium">
+                  <span>{pool.current_quantity.toLocaleString()} units committed</span>
+                  <span>Goal: {pool.target_quantity.toLocaleString()} units</span>
+                </div>
+              </Card>
+            </FadeIn>
 
-                <PricingSlabsTable tiers={pool.pool_tiers} currentQty={pool.current_quantity} />
-              </div>
-            </div>
+            {/* Pricing slabs */}
+            <FadeIn delay={0.2}>
+              <PricingSlabsTable tiers={pool.pool_tiers} currentQty={pool.current_quantity} />
+            </FadeIn>
+          </div>
 
-            {/* Right Column: Order Form */}
-            <div className="lg:col-span-2 bg-slate-50 p-8 md:p-12 flex flex-col">
-              <div className="sticky top-24">
-                <h3 className="text-2xl font-bold text-slate-900 mb-6">Join this Pool</h3>
-                
-                <form onSubmit={handleJoinPool} className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-900 mb-2">
-                      Quantity Required
-                    </label>
-                    <div className="relative">
-                      <input 
-                        type="number"
-                        min={pool.pool_tiers?.[0]?.min_qty || 1}
-                        value={quantity}
-                        onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
-                        className="w-full px-4 py-4 text-lg border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none"
-                      />
-                      <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-500 font-medium">
-                        Units
+          {/* Right Column: Sticky Sidebar */}
+          <div className="lg:col-span-2">
+            <div className="sticky top-24">
+              <FadeIn direction="left">
+                <Card className="p-6 space-y-6">
+                  <h3 className="text-2xl font-bold text-ink-900 font-display">Join this Pool</h3>
+
+                  <form onSubmit={handleJoinPool} className="space-y-5">
+                    {/* Quantity +/- */}
+                    <div>
+                      <label className="block text-sm font-semibold text-ink-900 mb-3">
+                        Quantity Required
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(q => Math.max(pool.pool_tiers?.[0]?.min_qty || 1, q - 1))}
+                          className="w-11 h-11 rounded-lg border border-ink-200 bg-white text-ink-700 hover:bg-ink-100 flex items-center justify-center transition-colors"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <input
+                          type="number"
+                          min={pool.pool_tiers?.[0]?.min_qty || 1}
+                          value={quantity}
+                          onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
+                          className="flex-1 h-11 px-4 text-lg font-semibold text-center border border-ink-300 rounded-lg focus:outline-none focus:border-brand-primary-500 focus:ring-4 focus:ring-brand-primary-100 transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(q => q + 1)}
+                          className="w-11 h-11 rounded-lg border border-ink-200 bg-white text-ink-700 hover:bg-ink-100 flex items-center justify-center transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {pool.pool_tiers?.[0]?.min_qty && (
+                        <p className="text-xs text-ink-500 mt-2">
+                          Minimum: {pool.pool_tiers[0].min_qty} units
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Estimated Cost */}
+                    <div className="bg-ink-50 rounded-xl p-5 space-y-3 border border-ink-100">
+                      <h4 className="font-semibold text-ink-900 border-b border-ink-100 pb-3">Estimated Cost</h4>
+
+                      <div className="flex justify-between text-sm">
+                        <span className="text-ink-600">Price / unit</span>
+                        <span className="font-medium text-ink-900">₹{projectedPrice}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-ink-600">Subtotal ({quantity} units)</span>
+                        <span className="font-medium text-ink-900">₹{(quantity * projectedPrice).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-ink-600">Logistics</span>
+                        <span className="font-medium text-ink-900">{logisticsFee > 0 ? `₹${logisticsFee}` : 'Free'}</span>
+                      </div>
+
+                      <div className="pt-4 border-t border-ink-200 flex justify-between items-end">
+                        <span className="font-bold text-ink-900">Total</span>
+                        <motion.span
+                          key={quantity + projectedPrice}
+                          initial={{ scale: 1.1, color: '#4F46E5' }}
+                          animate={{ scale: 1, color: '#1C1917' }}
+                          className="text-2xl font-bold text-ink-900 font-display"
+                        >
+                          ₹{((quantity * projectedPrice) + logisticsFee).toLocaleString()}
+                        </motion.span>
                       </div>
                     </div>
-                    {pool.pool_tiers?.[0]?.min_qty && (
-                      <p className="text-xs text-slate-500 mt-2">
-                        Minimum order quantity: {pool.pool_tiers[0].min_qty} units
-                      </p>
-                    )}
-                  </div>
 
-                  <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm space-y-4">
-                    <h4 className="font-semibold text-slate-900 border-b border-slate-100 pb-3">Estimated Cost</h4>
-                    
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Projected Price/Unit</span>
-                      <span className="font-medium text-slate-900">₹{projectedPrice}</span>
-                    </div>
-                    
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Subtotal ({quantity} units)</span>
-                      <span className="font-medium text-slate-900">₹{(quantity * projectedPrice).toLocaleString()}</span>
-                    </div>
-                    
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Logistics Fee</span>
-                      <span className="font-medium text-slate-900">
-                        {logisticsFee > 0 ? `₹${logisticsFee}` : 'Free'}
-                      </span>
-                    </div>
-                    
-                    <div className="pt-4 border-t border-slate-100 flex justify-between items-end">
-                      <span className="font-bold text-slate-900">Total</span>
-                      <span className="text-2xl font-bold text-indigo-700">
-                        ₹{((quantity * projectedPrice) + logisticsFee).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button 
-                    type="submit"
-                    disabled={isJoining}
-                    className="w-full py-4 px-6 bg-indigo-700 text-white text-lg font-bold rounded-xl hover:bg-indigo-800 focus:ring-4 focus:ring-indigo-300 transition-all shadow-lg shadow-indigo-200 flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                  >
-                    {isJoining ? 'Joining...' : 'Join Pool Now 🔒'}
-                  </button>
-                  <p className="text-xs text-center text-slate-500">
-                    No payment required until the pool closes.
-                  </p>
-                </form>
-              </div>
+                    <Button
+                      type="submit"
+                      variant="accent"
+                      size="lg"
+                      disabled={isJoining}
+                      className="w-full text-base font-bold shadow-md shadow-brand-accent-500/30 gap-2"
+                    >
+                      <Lock className="w-5 h-5" />
+                      {isJoining ? 'Joining...' : 'Join Pool Now'}
+                    </Button>
+                    <p className="text-xs text-center text-ink-500">
+                      No payment required until the pool closes.
+                    </p>
+                  </form>
+                </Card>
+              </FadeIn>
             </div>
           </div>
         </div>
