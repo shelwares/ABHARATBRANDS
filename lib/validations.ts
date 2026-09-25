@@ -51,6 +51,7 @@ export const SignupSchema = z.object({
     .min(8, 'Password must be at least 8 characters')
     .regex(/[A-Z]/, 'Password must contain at least 1 uppercase letter')
     .regex(/[0-9]/, 'Password must contain at least 1 number'),
+  full_name: z.string().min(1, 'Full name required'),
   phone: z.string().min(10, 'Phone must be at least 10 digits').max(15),
   company_name: z.string().min(2).max(100).optional(),
 });
