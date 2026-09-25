@@ -14,13 +14,13 @@ export default function ConfirmPage() {
   useEffect(() => {
     const verify = async () => {
       const token_hash = searchParams.get("token_hash");
-      const type = searchParams.get("type") as "recovery" | null;
+      const type = searchParams.get("type") as "recovery" | "signup" | "email_change" | "email" | "magiclink" | "invite" | null;
       const next = searchParams.get("next") || "/auth/reset-password";
 
       // If no token_hash is present, immediately show an error.
       // This prevents the page from redirecting if a session already exists.
       if (!token_hash || !type) {
-        setError("Invalid or missing reset token. Please request a new link.");
+        setError("Invalid or missing verification token. Please request a new link.");
         setStatus("error");
         return;
       }
@@ -37,8 +37,12 @@ export default function ConfirmPage() {
         return;
       }
 
-      // On successful verification, redirect to the password reset page.
-      router.replace(next);
+      // Redirect based on type
+      if (type === "signup" || type === "invite" || type === "magiclink") {
+        router.replace("/dashboard");
+      } else {
+        router.replace(next);
+      }
     };
 
     verify();

@@ -7,6 +7,7 @@ import { useState } from 'react'
 
 export default function SignupPage() {
   const [loading, setLoading] = useState(false);
+  const [formState, setFormState] = useState<{success?: string, error?: string} | null>(null);
 
   const handleGoogleSignup = async () => {
     setLoading(true);
@@ -67,8 +68,25 @@ export default function SignupPage() {
             </div>
           </div>
 
+          {formState?.error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm text-center font-medium">
+              {formState.error}
+            </div>
+          )}
+          {formState?.success && (
+            <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded-lg text-sm text-center font-medium">
+              {formState.success}
+            </div>
+          )}
+
           {/* Signup Form — logic untouched */}
-          <form className="space-y-4" action={signup}>
+          <form className="space-y-4" action={async (formData) => {
+            setLoading(true);
+            setFormState(null);
+            const res = await signup(formData);
+            if (res) setFormState(res);
+            setLoading(false);
+          }}>
             {[
               { label: 'Full Name', name: 'full_name', type: 'text', placeholder: 'John Doe' },
               { label: 'Company Name', name: 'company_name', type: 'text', placeholder: 'Acme Corp' },
@@ -81,7 +99,7 @@ export default function SignupPage() {
                 <input
                   name={name}
                   type={type}
-                  required={name !== 'address'}
+                  required={name !== 'address' && name !== 'company_name'}
                   placeholder={placeholder}
                   className="h-11 w-full rounded-lg border border-ink-300 bg-white px-3 py-2 text-sm text-ink-900 shadow-sm placeholder:text-ink-400 focus:outline-none focus:border-brand-primary-500 focus:ring-4 focus:ring-brand-primary-100 transition-all"
                 />
@@ -99,9 +117,10 @@ export default function SignupPage() {
 
             <button
               type="submit"
-              className="w-full h-11 bg-brand-primary-500 text-white rounded-lg font-semibold hover:bg-brand-primary-600 transition-colors shadow-sm mt-2"
+              disabled={loading}
+              className="w-full h-11 bg-brand-primary-500 text-white rounded-lg font-semibold hover:bg-brand-primary-600 transition-colors shadow-sm mt-2 disabled:opacity-50"
             >
-              Create Account
+              {loading ? "Creating Account..." : "Create Account"}
             </button>
           </form>
 

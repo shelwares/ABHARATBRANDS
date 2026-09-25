@@ -30,9 +30,12 @@ export async function login(formData: FormData) {
       password: validatedData.data.password,
     })
 
-    if (error) {
+    if (error || !data.user) {
       logger.warn('Failed login attempt', { email: validatedData.data.email, ip });
-      return redirect(`/auth/login?message=${encodeURIComponent(error.message)}`)
+      if (error?.message?.toLowerCase().includes('email not confirmed')) {
+        return redirect(`/auth/login?message=${encodeURIComponent('Please confirm your email first. Check your inbox.')}`);
+      }
+      return redirect(`/auth/login?message=${encodeURIComponent('Invalid email or password')}`);
     }
 
     // Fetch profile to determine role
@@ -59,56 +62,46 @@ export async function signup(formData: FormData) {
     const ip = await getClientIp();
     if (signupLimiter) {
       const { success } = await signupLimiter.limit(ip);
-      if (!success) return redirect('/auth/signup?message=Too many signup attempts. Try again in an hour.');
+      if (!success) return { error: 'Too many attempts. Try again later.' };
     }
 
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
-    const full_name = formData.get('full_name') as string
-    const phone = formData.get('phone') as string
-    const company_name = formData.get('company_name') as string
-    const address = formData.get('address') as string
-    
-    const validatedData = SignupSchema.safeParse({ email, password, phone, company_name });
-    if (!validatedData.success) {
-      logger.warn('Signup validation failed', { ip, errors: validatedData.error.issues });
-      return redirect(`/auth/signup?message=Invalid input data`)
+    const email = (formData.get('email') as string || '').trim().toLowerCase();
+    const password = formData.get('password') as string;
+    const full_name = (formData.get('full_name') as string || '').trim();
+    const phone = (formData.get('phone') as string || '').trim();
+    const company_name = (formData.get('company_name') as string || '').trim();
+    const address = (formData.get('address') as string || '').trim();
+
+    const validated = SignupSchema.safeParse({ email, password, full_name, phone, company_name });
+    if (!validated.success) {
+      return { error: validated.error.issues[0].message };
     }
 
-    const supabase = await getSupabaseServerClient()
-
-    const { data: authData, error } = await supabase.auth.signUp({
-      email: validatedData.data.email,
-      password: validatedData.data.password,
+    const supabase = await getSupabaseServerClient();
+    const { data, error } = await supabase.auth.signUp({
+      email: validated.data.email,
+      password: validated.data.password,
       options: {
         data: {
-          full_name,
-          phone: validatedData.data.phone,
-          company_name: validatedData.data.company_name,
-        }
-      }
-    })
+          full_name: validated.data.full_name,
+          phone: validated.data.phone,
+          company_name: validated.data.company_name,
+          address,
+        },
+      },
+    });
 
     if (error) {
-      logger.warn('Failed signup attempt', { email: validatedData.data.email, ip });
-      return redirect(`/auth/signup?message=${encodeURIComponent(error.message)}`)
+      logger.error('Signup error', { error: error.message });
+      // Privacy: never expose whether email exists
+      return { error: 'Unable to create account. Please try again or contact support.' };
     }
 
-    if (authData?.user) {
-      await supabase.from('profiles').upsert({
-        id: authData.user.id,
-        phone: validatedData.data.phone,
-        company_name: validatedData.data.company_name,
-        address,
-        role: 'buyer',
-      })
-    }
-
-    logger.info('User signed up', { email: validatedData.data.email, ip });
-    redirect('/auth/login?message=Account created successfully! Please sign in.')
-  } catch (error) {
-    logger.error('Signup action error', error);
-    return redirect(`/auth/signup?message=An unexpected error occurred`)
+    // Success — user must check email to confirm
+    return { success: 'Account created! Please check your email to confirm before signing in.' };
+  } catch (e: any) {
+    logger.error('Signup exception', { error: e.message });
+    return { error: 'Something went wrong. Please try again.' };
   }
 }
 
