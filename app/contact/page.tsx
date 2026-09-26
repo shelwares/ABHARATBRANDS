@@ -36,6 +36,14 @@ export default function ContactPage() {
             </div>
 
             <div>
+              <p className="text-sm font-semibold text-ink-500 uppercase mb-1">Grievance Officer (DPDP)</p>
+              <a href="mailto:dpo@abhartbrands.com" className="text-brand-primary-600 hover:underline">
+                dpo@abhartbrands.com
+              </a>
+              <p className="text-xs text-ink-500 mt-1">Response within 30 days</p>
+            </div>
+
+            <div>
               <p className="text-sm font-semibold text-ink-500 uppercase mb-1">Phone</p>
               <a href="tel:+919999999999" className="text-brand-primary-600 hover:underline">
                 +91 99999 99999

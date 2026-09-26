@@ -115,6 +115,42 @@ export default function SignupPage() {
               />
             </div>
 
+            {/* Age Verification */}
+            <div className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                id="age_verify"
+                name="age_verify"
+                required
+                className="mt-1 w-4 h-4 rounded border-ink-300 text-brand-primary-600 focus:ring-brand-primary-500"
+              />
+              <label htmlFor="age_verify" className="text-sm text-ink-600">
+                I confirm I am <strong>18 years or older</strong> and eligible to use this B2B platform. <span className="text-red-500">*</span>
+              </label>
+            </div>
+
+            {/* Terms & Privacy Consent */}
+            <div className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                id="terms_consent"
+                name="terms_consent"
+                required
+                className="mt-1 w-4 h-4 rounded border-ink-300 text-brand-primary-600 focus:ring-brand-primary-500"
+              />
+              <label htmlFor="terms_consent" className="text-sm text-ink-600">
+                I agree to the{" "}
+                <a href="/terms" target="_blank" className="text-brand-primary-600 underline">
+                  Terms & Conditions
+                </a>{" "}
+                and{" "}
+                <a href="/privacy" target="_blank" className="text-brand-primary-600 underline">
+                  Privacy Policy
+                </a>
+                . I consent to processing of my personal data for account creation and order fulfillment. <span className="text-red-500">*</span>
+              </label>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
