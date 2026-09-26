@@ -1,8 +1,23 @@
 import { requireAdmin } from '@/lib/actions/admin'
+import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import AdminSidebar from './AdminSidebar'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdmin()
+
+  const supabase = await getSupabaseServerClient();
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+  // User has MFA set up but hasn't verified this session
+  if (aal?.currentLevel === 'aal1' && aal?.nextLevel === 'aal2') {
+    redirect('/auth/mfa-verify');
+  }
+
+  // User has NO MFA set up at all — force setup
+  if (aal?.currentLevel === 'aal1' && aal?.nextLevel === 'aal1') {
+    redirect('/dashboard/security?reason=setup-required');
+  }
 
   return (
     <div className="min-h-screen bg-slate-100">

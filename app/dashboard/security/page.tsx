@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +18,8 @@ type Factor = {
 };
 
 export default function SecurityPage() {
+  const searchParams = useSearchParams();
+  const reason = searchParams.get("reason");
   const [factors, setFactors] = useState<Factor[]>([]);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
@@ -131,6 +134,15 @@ export default function SecurityPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
+      {reason === "setup-required" && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-lg">
+          <p className="font-semibold">⚠️ 2FA Setup Required</p>
+          <p className="text-sm mt-1">
+            Admin panel access requires two-factor authentication. Please set up 2FA below.
+          </p>
+        </div>
+      )}
+
       <div>
         <h1 className="text-2xl font-bold text-ink-900">Security Settings</h1>
         <p className="text-ink-500 text-sm mt-1">
