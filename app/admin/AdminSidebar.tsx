@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
-import { LayoutDashboard, Package, Layers, ShoppingCart, ClipboardCheck, Globe, LogOut } from 'lucide-react'
+import { LayoutDashboard, Package, Layers, ShoppingCart, ClipboardCheck, Globe, LogOut, Shield } from 'lucide-react'
 
 const navItems = [
   { label: 'Overview',  href: '/admin',          icon: LayoutDashboard },
@@ -11,6 +11,7 @@ const navItems = [
   { label: 'Pools',     href: '/admin/pools',     icon: Layers },
   { label: 'Orders',    href: '/admin/orders',    icon: ShoppingCart },
   { label: 'QC',        href: '/admin/qc',        icon: ClipboardCheck },
+  { label: 'Security',  href: '/dashboard/security', icon: Shield },
 ]
 
 export default function AdminSidebar() {

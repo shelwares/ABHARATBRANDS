@@ -8,6 +8,7 @@ const navItems = [
   { label: 'Overview', href: '/dashboard', icon: '🏠' },
   { label: 'My Orders', href: '/dashboard/orders', icon: '📦' },
   { label: 'My Profile', href: '/dashboard/profile', icon: '👤' },
+  { label: 'Security', href: '/dashboard/security', icon: '🛡️' },
 ]
 
 export default function DashboardSidebar() {
